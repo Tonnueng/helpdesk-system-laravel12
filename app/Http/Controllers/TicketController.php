@@ -85,7 +85,7 @@ class TicketController extends Controller
             $ticket->reported_at = $validatedData['reported_at'];
             $ticket->save();
 
-            // 3. จัดการไฟล์แนบ (ถ้ามี)
+            // 3. จัดการไฟล์แนบ 
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -121,9 +121,7 @@ class TicketController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
+    
     public function show(Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: ถ้าไม่ใช่ผู้แจ้งเอง และไม่มีสิทธิ์จัดการ Ticket ให้ปฏิเสธการเข้าถึง

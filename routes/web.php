@@ -39,7 +39,7 @@ Route::middleware('auth', 'verified')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
+    
     // เส้นทางสำหรับ Tickets (ใช้ middleware 'auth' เพื่อให้เข้าถึงได้เฉพาะผู้ที่เข้าสู่ระบบแล้ว)
     Route::resource('tickets', TicketController::class);
     Route::delete('/attachments/{attachment}', [TicketAttachmentController::class, 'destroy'])->name('attachments.destroy');
