@@ -1,70 +1,252 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🎫 ระบบจัดการปัญหา (Helpdesk System)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+ระบบจัดการปัญหาที่พัฒนาด้วย Laravel และ Tailwind CSS สำหรับการจัดการปัญหาและการแจ้งเตือน
 
-## About Laravel
+![Laravel](https://img.shields.io/badge/Laravel-10.x-red.svg)
+![PHP](https://img.shields.io/badge/PHP-8.1+-blue.svg)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC.svg)
+![MySQL](https://img.shields.io/badge/MySQL-8.0+-4479A1.svg)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 สารบัญ
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- [คุณสมบัติหลัก](#คุณสมบัติหลัก)
+- [ความต้องการของระบบ](#ความต้องการของระบบ)
+- [การติดตั้ง](#การติดตั้ง)
+- [การตั้งค่า](#การตั้งค่า)
+- [การใช้งาน](#การใช้งาน)
+- [การพัฒนา](#การพัฒนา)
+- [การสนับสนุน](#การสนับสนุน)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ✨ คุณสมบัติหลัก
 
-## Learning Laravel
+- 🎫 **จัดการปัญหา**: สร้าง แก้ไข และติดตามสถานะปัญหา
+- 👥 **จัดการผู้ใช้**: ระบบสิทธิ์ผู้ใช้ (Admin, Agent, User)
+- 📊 **แดชบอร์ด**: แสดงสถิติและข้อมูลสรุป
+- 🔔 **การแจ้งเตือน**: ระบบแจ้งเตือนแบบ Real-time
+- 📁 **แนบไฟล์**: รองรับการแนบไฟล์ในปัญหา
+- 📈 **รายงาน**: กราฟและสถิติรายเดือน/รายวัน
+- 🎨 **UI สวยงาม**: ใช้ Tailwind CSS และ Font Awesome
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🖥️ ความต้องการของระบบ
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### ซอฟต์แวร์ที่จำเป็น
+- **PHP** 8.1 หรือสูงกว่า
+- **Composer** 2.0 หรือสูงกว่า
+- **Node.js** 18.0 หรือสูงกว่า
+- **npm** 8.0 หรือสูงกว่า
+- **MySQL** 8.0 หรือสูงกว่า
+- **Web Server** (Apache/Nginx)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### ส่วนขยาย PHP ที่จำเป็น
+- BCMath PHP Extension
+- Ctype PHP Extension
+- JSON PHP Extension
+- Mbstring PHP Extension
+- OpenSSL PHP Extension
+- PDO PHP Extension
+- Tokenizer PHP Extension
+- XML PHP Extension
 
-## Laravel Sponsors
+## 🚀 การติดตั้ง
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### ขั้นตอนที่ 1: โคลนโปรเจค
 
-### Premium Partners
+```bash
+# โคลนโปรเจคจาก Git
+git clone https://github.com/your-username/helpdesk-system.git
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# เข้าไปในโฟลเดอร์โปรเจค
+cd helpdesk-system
+```
 
-## Contributing
+### ขั้นตอนที่ 2: ติดตั้ง Dependencies
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# ติดตั้ง PHP dependencies
+composer install
 
-## Code of Conduct
+# ติดตั้ง Node.js dependencies
+npm install
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### ขั้นตอนที่ 3: ตั้งค่า Environment
 
-## Security Vulnerabilities
+```bash
+# คัดลอกไฟล์ environment
+cp .env.example .env
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# สร้าง application key
+php artisan key:generate
+```
 
-## License
+### ขั้นตอนที่ 4: ตั้งค่าฐานข้อมูล
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+แก้ไขไฟล์ `.env` และตั้งค่าฐานข้อมูล:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=helpdesk_system
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
+
+### ขั้นตอนที่ 5: รัน Migration และ Seeder
+
+```bash
+# รัน migration เพื่อสร้างตาราง
+php artisan migrate
+
+# รัน seeder เพื่อเพิ่มข้อมูลเริ่มต้น
+php artisan db:seed
+```
+
+### ขั้นตอนที่ 6: Build Assets
+
+```bash
+# Build CSS และ JavaScript
+npm run build
+```
+
+### ขั้นตอนที่ 7: ตั้งค่าสิทธิ์
+
+```bash
+# ตั้งค่าสิทธิ์โฟลเดอร์ storage
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+```
+
+## ⚙️ การตั้งค่า
+
+### การตั้งค่า Mail (สำหรับการแจ้งเตือน)
+
+แก้ไขไฟล์ `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=your-email@gmail.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+### การตั้งค่า Queue (สำหรับการประมวลผลแจ้งเตือน)
+
+```bash
+# รัน queue worker
+php artisan queue:work
+```
+
+## 👤 การใช้งาน
+
+### บัญชีเริ่มต้น
+
+หลังจากรัน seeder แล้ว คุณสามารถเข้าสู่ระบบด้วยบัญชีต่อไปนี้:
+
+#### ผู้ดูแลระบบ (Admin)
+- **อีเมล**: admin@example.com
+- **รหัสผ่าน**: password
+
+#### เจ้าหน้าที่ (Agent)
+- **อีเมล**: agent@example.com
+- **รหัสผ่าน**: password
+
+#### ผู้ใช้ทั่วไป (User)
+- **อีเมล**: user@example.com
+- **รหัสผ่าน**: password
+
+### การใช้งานพื้นฐาน
+
+1. **เข้าสู่ระบบ** ที่หน้า Login
+2. **สร้างปัญหาใหม่** โดยคลิก "แจ้งปัญหาใหม่"
+3. **ติดตามสถานะ** ในหน้า "รายการปัญหา"
+4. **ดูสถิติ** ในหน้า "แดชบอร์ด"
+
+## 🛠️ การพัฒนา
+
+### การรัน Development Server
+
+```bash
+# รัน Laravel development server
+php artisan serve
+
+# รัน Vite development server (ใน terminal อีกตัว)
+npm run dev
+```
+
+### การทดสอบ
+
+```bash
+# รัน unit tests
+php artisan test
+
+# รัน tests พร้อม coverage
+php artisan test --coverage
+```
+
+### การตรวจสอบ Code Quality
+
+```bash
+# ตรวจสอบ coding standards
+./vendor/bin/phpcs
+
+# แก้ไข coding standards อัตโนมัติ
+./vendor/bin/phpcbf
+```
+
+## 📁 โครงสร้างโปรเจค
+
+```
+helpdesk-system/
+├── app/
+│   ├── Http/Controllers/    # Controllers
+│   ├── Models/             # Eloquent Models
+│   ├── Notifications/      # Notification Classes
+│   └── Jobs/              # Queue Jobs
+├── database/
+│   ├── migrations/         # Database Migrations
+│   └── seeders/           # Database Seeders
+├── resources/
+│   ├── views/             # Blade Templates
+│   ├── css/               # CSS Files
+│   └── js/                # JavaScript Files
+├── routes/                # Route Definitions
+└── tests/                 # Test Files
+```
+
+## 🔧 การแก้ไขปัญหา
+
+### ปัญหาที่พบบ่อย
+
+#### 1. Permission Denied
+```bash
+# แก้ไขสิทธิ์โฟลเดอร์
+chmod -R 775 storage bootstrap/cache
+```
+
+#### 2. Composer Memory Limit
+```bash
+# เพิ่ม memory limit
+COMPOSER_MEMORY_LIMIT=-1 composer install
+```
+
+#### 3. Node Modules ไม่พบ
+```bash
+# ลบและติดตั้งใหม่
+rm -rf node_modules package-lock.json
+npm install
+```
 
 
-## ผู้ใช้สำหรับทดสอบ:
+## 🙏 ขอบคุณ
 
-ผู้แจ้งปัญหา: user@test.com / password
-เจ้าหน้าที่ 1: agent1@test.com / password
-เจ้าหน้าที่ 2: agent2@test.com / password
-หัวหน้าระบบ: head@test.com / password
-เจ้าของระบบ: admin@helpdesk.com / password
+ขอบคุณสำหรับการใช้ระบบจัดการปัญหานี้! หากโปรเจคนี้มีประโยชน์ กรุณาให้ ⭐ ใน GitHub repository
+
+---
+
+**พัฒนาโดย** [ต้นหนึ่ง]  
+**อัปเดตล่าสุด** 2025
