@@ -18,30 +18,80 @@ use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+   
+    public function index(Request $request)
     {
-        // ถ้าผู้ใช้งานมีสิทธิ์จัดการ Ticket (เจ้าของ, หัวหน้า, เจ้าหน้าที่) ให้แสดงปัญหาทั้งหมด
-        if (Auth::user()->canManageTickets()) { // ใช้เมธอดใหม่ canManageTickets()
-            $tickets = Ticket::with(['user', 'category', 'priority', 'status'])
-                              ->orderBy('created_at', 'desc')
-                              ->paginate(10);
-        } else {
-            // ถ้าเป็นผู้ใช้งานทั่วไป (role: 'user') ให้แสดงเฉพาะปัญหาที่ตัวเองแจ้ง
-            $tickets = Ticket::where('user_id', Auth::id())
-                              ->with(['user', 'category', 'priority', 'status'])
-                              ->orderBy('created_at', 'desc')
-                              ->paginate(10);
+        $query = Ticket::with(['user', 'category', 'priority', 'status']);
+
+        // ค้นหาตามคำค้น
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
         }
 
-        return view('tickets.index', compact('tickets'));
+        // กรองตามสถานะ
+        if ($request->filled('status')) {
+            $query->where('status_id', $request->status);
+        }
+
+        // กรองตามประเภท
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        // กรองตามระดับความสำคัญ
+        if ($request->filled('priority')) {
+            $query->where('priority_id', $request->priority);
+        }
+
+        // กรองตามวันที่
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // ถ้าผู้ใช้งานมีสิทธิ์จัดการ Ticket (เจ้าของ, หัวหน้า, เจ้าหน้าที่) ให้แสดงปัญหาทั้งหมด
+        if (Auth::user()->canManageTickets()) {
+            // กรองตามผู้รับผิดชอบ
+            if ($request->filled('assigned_to')) {
+                if ($request->assigned_to === 'me') {
+                    $query->where('assigned_to_user_id', Auth::id());
+                } elseif ($request->assigned_to === 'unassigned') {
+                    $query->whereNull('assigned_to_user_id');
+                } else {
+                    $query->where('assigned_to_user_id', $request->assigned_to);
+                }
+            }
+        } else {
+            // ถ้าเป็นผู้ใช้งานทั่วไป (role: 'user') ให้แสดงเฉพาะปัญหาที่ตัวเองแจ้ง
+            $query->where('user_id', Auth::id());
+        }
+
+        // เรียงลำดับ
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $tickets = $query->paginate(10)->withQueryString();
+
+        // โหลดข้อมูลสำหรับ dropdown filters
+        $categories = Category::all();
+        $priorities = Priority::all();
+        $statuses = Status::all();
+        $agents = User::whereIn('role', ['owner', 'head', 'agent'])->get();
+
+        return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    
     public function create()
     {
         // โหลดข้อมูล Category, Priority, Status เพื่อใช้ใน Dropdown ของฟอร์ม
@@ -148,17 +198,13 @@ class TicketController extends Controller
         return view('tickets.show', compact('ticket', 'statuses', 'agents'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+    
     public function edit(Ticket $ticket)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    
     public function update(Request $request, Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่แก้ไขได้
@@ -232,9 +278,7 @@ class TicketController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    
     public function destroy(Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่ลบได้
@@ -250,9 +294,7 @@ class TicketController extends Controller
         }
     }
 
-    /**
-     * ส่ง In-app Notifications เมื่อมีการสร้าง Ticket ใหม่
-     */
+   
     private function sendTicketCreatedNotifications(Ticket $ticket)
     {
         // หาผู้ดูแลทั้งหมด (owner, head, agent)
@@ -264,9 +306,7 @@ class TicketController extends Controller
         }
     }
 
-    /**
-     * ส่ง In-app Notifications เมื่อมีการอัปเดต Ticket
-     */
+    
     private function sendTicketUpdatedNotifications(Ticket $ticket, $update)
     {
         // ส่ง notification ให้ผู้แจ้งปัญหา
@@ -289,9 +329,8 @@ class TicketController extends Controller
         }
     }
 
-    /**
-     * ส่ง In-app Notifications เมื่อมีการมอบหมาย Ticket
-     */
+    
+    
     private function sendTicketAssignedNotification(Ticket $ticket)
     {
         if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {

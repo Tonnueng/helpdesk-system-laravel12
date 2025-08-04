@@ -2,6 +2,4 @@
 @tailwind components;
 @tailwind utilities;
 
-@import 'bootstrap/scss/bootstrap.scss';
-@import 'bootstrap-icons/font/bootstrap-icons.css';
 /* เพิ่มสไตล์ CSS อื่นๆ ของคุณที่นี่ หากมี */
