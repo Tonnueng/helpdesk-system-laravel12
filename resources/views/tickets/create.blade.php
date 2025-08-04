@@ -1,3 +1,5 @@
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center space-x-4">
@@ -5,7 +7,7 @@
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            </svg> 
             <h2 class="text-3xl font-bold text-indigo-700 leading-tight">
                 {{ __('แจ้งปัญหาใหม่') }}
             </h2>
@@ -29,42 +31,83 @@
                         {{ __('กรุณากรอกข้อมูลให้ครบถ้วนเพื่อให้เราช่วยแก้ปัญหาได้อย่างรวดเร็ว') }}</p>
                 </div>
 
-                <form method="POST" action="{{ route('tickets.store') }}" enctype="multipart/form-data"
-                    class="space-y-8">
+                <form 
+                    x-data="{
+                        formData: {
+                            title: `{{ old('title', '') }}`,
+                            description: `{{ old('description', '') }}`,
+                            category_id: `{{ old('category_id', '') }}`,
+                            priority_id: `{{ old('priority_id', '') }}`
+                        },
+                        errors: {},
+                        validateAndSubmit() {
+                            this.errors = {}; // เคลียร์ error เก่า
+                            let isValid = true;
+                            
+                            if (!this.formData.title.trim()) {
+                                this.errors.title = 'กรุณากรอกหัวข้อปัญหา';
+                                isValid = false;
+                            }
+                            
+                            if (!this.formData.description.trim()) {
+                                this.errors.description = 'กรุณากรอกรายละเอียดของปัญหา';
+                                isValid = false;
+                            }
+
+                            if (!this.formData.category_id) {
+                                this.errors.category_id = 'กรุณาเลือกประเภทปัญหา';
+                                isValid = false;
+                            }
+
+                            if (!this.formData.priority_id) {
+                                this.errors.priority_id = 'กรุณาเลือกระดับความสำคัญ';
+                                isValid = false;
+                            }
+                            
+                            if (isValid) {
+                                this.$el.submit(); // ถ้าข้อมูลถูกต้องทั้งหมด ให้ส่งฟอร์ม
+                            }
+                        }
+                    }"
+                    @submit.prevent="validateAndSubmit"
+                    method="POST" 
+                    action="{{ route('tickets.store') }}" 
+                    enctype="multipart/form-data"
+                    class="space-y-8"
+                    novalidate>
                     @csrf
 
-                    <!-- หัวข้อปัญหา -->
                     <div class="space-y-2">
                         <x-input-label for="title" :value="__('หัวข้อปัญหา')" class="text-gray-700 font-medium" />
-                        <x-text-input id="title" name="title" type="text"
+                        <x-text-input x-model.lazy="formData.title" id="title" name="title" type="text"
                             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:ring-opacity-50 py-3 px-4 @error('title') border-red-500 @enderror"
-                            :value="old('title')" required autofocus
+                            required autofocus
                             placeholder="{{ __('เช่น: ไม่สามารถเข้าสู่ระบบได้, หน้าจอแสดงผลผิดปกติ, อุปกรณ์ไม่ทำงาน') }}" />
-                        <x-input-error :messages="$errors->get('title')" class="mt-2 text-red-600 text-sm" />
+                        <p x-show="errors.title" x-text="errors.title" class="text-sm text-red-600"></p>
+                        <x-input-error :messages="$errors->get('title')" class="mt-2" />
                     </div>
 
-                    <!-- รายละเอียดปัญหา -->
                     <div class="space-y-2">
                         <x-input-label for="description" :value="__('รายละเอียดปัญหา')" class="text-gray-700 font-medium" />
-                        <textarea id="description" name="description" rows="7"
+                        <textarea x-model.lazy="formData.description" id="description" name="description" rows="7"
                             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:ring-opacity-50 py-3 px-4 @error('description') border-red-500 @enderror"
                             required
                             placeholder="{{ __('ตัวอย่าง:
                             - ปัญหาเกิดเมื่อเวลา 14:30 น.
-                            - ข้อความที่แสดง: "Error 404: Page not found"
+                            - ข้อความที่แสดง: \"Error 404: Page not found\"
                             - ได้ลองรีเฟรชหน้าเว็บแล้วแต่ยังไม่แก้ไข
                             - เกิดขณะกำลังทำรายการชำระเงิน') }}">{{ old('description') }}</textarea>
-                        <x-input-error :messages="$errors->get('description')" class="mt-2 text-red-600 text-sm" />
+                        <p x-show="errors.description" x-text="errors.description" class="text-sm text-red-600"></p>
+                        <x-input-error :messages="$errors->get('description')" class="mt-2" />
                     </div>
 
-                    <!-- ประเภทและความสำคัญ -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <x-input-label for="category_id" :value="__('ประเภทปัญหา')" class="text-gray-700 font-medium" />
-                            <select id="category_id" name="category_id"
+                            <select x-model="formData.category_id" id="category_id" name="category_id"
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:ring-opacity-50 py-3 px-4 @error('category_id') border-red-500 @enderror"
                                 required>
-                                <option value="" class="text-gray-400">{{ __('-- เลือกประเภท --') }}</option>
+                                <option value="" disabled>{{ __('-- เลือกประเภท --') }}</option>
                                 @foreach ($categories as $category)
                                     @php
                                         $thaiCategory = match ($category->name) {
@@ -83,15 +126,16 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <x-input-error :messages="$errors->get('category_id')" class="mt-2 text-red-600 text-sm" />
+                            <p x-show="errors.category_id" x-text="errors.category_id" class="text-sm text-red-600"></p>
+                            <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
                         </div>
 
                         <div class="space-y-2">
                             <x-input-label for="priority_id" :value="__('ระดับความสำคัญ')" class="text-gray-700 font-medium" />
-                            <select id="priority_id" name="priority_id"
+                            <select x-model="formData.priority_id" id="priority_id" name="priority_id"
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:ring-opacity-50 py-3 px-4 @error('priority_id') border-red-500 @enderror"
                                 required>
-                                <option value="" class="text-gray-400">{{ __('-- เลือกระดับ --') }}</option>
+                                <option value="" disabled>{{ __('-- เลือกระดับ --') }}</option>
                                 @foreach ($priorities as $priority)
                                     @php
                                         $thaiPriority = match ($priority->name) {
@@ -116,11 +160,11 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <x-input-error :messages="$errors->get('priority_id')" class="mt-2 text-red-600 text-sm" />
+                            <p x-show="errors.priority_id" x-text="errors.priority_id" class="text-sm text-red-600"></p>
+                            <x-input-error :messages="$errors->get('priority_id')" class="mt-2" />
                         </div>
                     </div>
 
-                    <!-- วันที่ที่พบปัญหา -->
                     <div class="space-y-2">
                         <x-input-label for="reported_at" :value="__('วันที่และเวลาที่พบปัญหา')" class="text-gray-700 font-medium" />
                         <div class="relative">
@@ -135,10 +179,9 @@
                                 </svg>
                             </div>
                         </div>
-                        <x-input-error :messages="$errors->get('reported_at')" class="mt-2 text-red-600 text-sm" />
+                        <x-input-error :messages="$errors->get('reported_at')" class="mt-2" />
                     </div>
 
-                    <!-- ไฟล์แนบ -->
                     <div class="space-y-2">
                         <x-input-label for="attachments" :value="__('ไฟล์แนบ (รูปภาพ/เอกสาร)')" class="text-gray-700 font-medium" />
                         <div
@@ -164,12 +207,11 @@
                                 </p>
                             </div>
                         </div>
-                        <x-input-error :messages="$errors->get('attachments.*')" class="mt-2 text-red-600 text-sm" />
+                        <x-input-error :messages="$errors->get('attachments.*')" class="mt-2" />
                     </div>
 
-                    <!-- ปุ่มส่งฟอร์ม -->
                     <div class="flex justify-end pt-4">
-                        <x-primary-button
+                        <x-primary-button type="submit"
                             class="inline-flex items-center px-6 py-3 bg-indigo-600 border border-transparent rounded-full font-semibold text-white uppercase tracking-widest shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"
                                 xmlns="http://www.w3.org/2000/svg">

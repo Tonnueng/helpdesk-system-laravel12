@@ -6,6 +6,10 @@ use App\Models\Ticket;
 use App\Models\Category;
 use App\Models\Priority;
 use App\Models\Status;
+use App\Models\User;
+use App\Notifications\TicketCreatedNotification;
+use App\Notifications\TicketUpdatedNotification;
+use App\Notifications\TicketAssignedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -108,8 +112,10 @@ class TicketController extends Controller
                 'status_id' => $ticket->status_id,
             ]);
 
+            // 5. ส่ง In-app Notifications ให้ผู้ดูแล
+            $this->sendTicketCreatedNotifications($ticket);
 
-            // 5. Redirect พร้อมข้อความสำเร็จ
+            // 6. Redirect พร้อมข้อความสำเร็จ
             return redirect()->route('tickets.index')->with('success', 'แจ้งปัญหาสำเร็จแล้ว!');
 
         } catch (ValidationException $e) {
@@ -214,6 +220,9 @@ class TicketController extends Controller
                 ]);
             }
 
+            // 4. ส่ง In-app Notifications
+            $this->sendTicketUpdatedNotifications($ticket, $ticket->updates()->latest()->first());
+
             return redirect()->route('tickets.show', $ticket)->with('success', 'อัปเดตปัญหาสำเร็จแล้ว!');
 
         } catch (ValidationException $e) {
@@ -238,6 +247,55 @@ class TicketController extends Controller
             return redirect()->route('tickets.index')->with('success', 'ลบปัญหาสำเร็จแล้ว!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'เกิดข้อผิดพลาดในการลบปัญหา: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ส่ง In-app Notifications เมื่อมีการสร้าง Ticket ใหม่
+     */
+    private function sendTicketCreatedNotifications(Ticket $ticket)
+    {
+        // หาผู้ดูแลทั้งหมด (owner, head, agent)
+        $managers = User::whereIn('role', ['owner', 'head', 'agent'])->get();
+        
+        // ส่ง notification ให้ผู้ดูแลทุกคน
+        foreach ($managers as $manager) {
+            $manager->notify(new TicketCreatedNotification($ticket));
+        }
+    }
+
+    /**
+     * ส่ง In-app Notifications เมื่อมีการอัปเดต Ticket
+     */
+    private function sendTicketUpdatedNotifications(Ticket $ticket, $update)
+    {
+        // ส่ง notification ให้ผู้แจ้งปัญหา
+        if ($ticket->user_id !== Auth::id()) {
+            $ticket->user->notify(new TicketUpdatedNotification($ticket, $update));
+        }
+
+        // ส่ง notification ให้ผู้รับผิดชอบ (ถ้ามี)
+        if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
+            $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, $update));
+        }
+
+        // ส่ง notification ให้ผู้ดูแลอื่นๆ (ยกเว้นผู้ที่อัปเดต)
+        $otherManagers = User::whereIn('role', ['owner', 'head', 'agent'])
+                            ->where('id', '!=', Auth::id())
+                            ->get();
+        
+        foreach ($otherManagers as $manager) {
+            $manager->notify(new TicketUpdatedNotification($ticket, $update));
+        }
+    }
+
+    /**
+     * ส่ง In-app Notifications เมื่อมีการมอบหมาย Ticket
+     */
+    private function sendTicketAssignedNotification(Ticket $ticket)
+    {
+        if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
+            $ticket->assignedTo->notify(new TicketAssignedNotification($ticket, Auth::user()));
         }
     }
 }

@@ -23,6 +23,20 @@
                     <x-nav-link :href="route('tickets.index')" :active="request()->routeIs('tickets.index')">
                         {{ __('รายการปัญหา') }}
                     </x-nav-link>
+
+                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" class="relative">
+                        {{ __('การแจ้งเตือน') }}
+                        @if(Auth::user()->unreadNotifications()->count() > 0)
+                            <span class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ Auth::user()->unreadNotifications()->count() }}
+                            </span>
+                        @endif
+                    </x-nav-link>
+                </div>
+
+                <!-- Notification Bell -->
+                <div class="hidden sm:flex sm:items-center sm:ms-4">
+                    <x-notification-bell :count="Auth::user()->unreadNotifications()->count()" />
                 </div>
 
                 <!-- Settings Dropdown -->

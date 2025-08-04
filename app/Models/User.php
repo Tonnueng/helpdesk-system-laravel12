@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\DatabaseNotification;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -86,5 +87,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canManageTickets(): bool
     {
         return $this->isOwner() || $this->isHead() || $this->isAgent();
+    }
+
+    // Notification relationships
+    public function notifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')->orderBy('created_at', 'desc');
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')->whereNull('read_at');
+    }
+
+    public function readNotifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')->whereNotNull('read_at');
     }
 }
