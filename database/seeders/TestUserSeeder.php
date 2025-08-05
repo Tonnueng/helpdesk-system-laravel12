@@ -43,4 +43,4 @@ class TestUserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
     }
-} 
+}

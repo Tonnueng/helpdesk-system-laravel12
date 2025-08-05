@@ -18,7 +18,6 @@ use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
-   
     public function index(Request $request)
     {
         $query = Ticket::with(['user', 'category', 'priority', 'status']);
@@ -26,10 +25,10 @@ class TicketController extends Controller
         // ค้นหาตามคำค้น
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQuery) use ($search) {
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
                       $userQuery->where('name', 'like', "%{$search}%");
                   });
             });
@@ -91,7 +90,7 @@ class TicketController extends Controller
         return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents'));
     }
 
-    
+
     public function create()
     {
         // โหลดข้อมูล Category, Priority, Status เพื่อใช้ใน Dropdown ของฟอร์ม
@@ -102,9 +101,6 @@ class TicketController extends Controller
         return view('tickets.create', compact('categories', 'priorities', 'statuses'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         try {
@@ -139,7 +135,7 @@ class TicketController extends Controller
             $ticket->reported_at = $validatedData['reported_at'];
             $ticket->save();
 
-            // 3. จัดการไฟล์แนบ 
+            // 3. จัดการไฟล์แนบ
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -177,7 +173,7 @@ class TicketController extends Controller
         }
     }
 
-    
+
     public function show(Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: ถ้าไม่ใช่ผู้แจ้งเอง และไม่มีสิทธิ์จัดการ Ticket ให้ปฏิเสธการเข้าถึง
@@ -198,13 +194,13 @@ class TicketController extends Controller
         return view('tickets.show', compact('ticket', 'statuses', 'agents'));
     }
 
-    
+
     public function edit(Ticket $ticket)
     {
         //
     }
 
-    
+
     public function update(Request $request, Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่แก้ไขได้
@@ -278,7 +274,7 @@ class TicketController extends Controller
         }
     }
 
-    
+
     public function destroy(Ticket $ticket)
     {
         // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่ลบได้
@@ -294,19 +290,19 @@ class TicketController extends Controller
         }
     }
 
-   
+
     private function sendTicketCreatedNotifications(Ticket $ticket)
     {
         // หาผู้ดูแลทั้งหมด (owner, head, agent)
         $managers = User::whereIn('role', ['owner', 'head', 'agent'])->get();
-        
+
         // ส่ง notification ให้ผู้ดูแลทุกคน
         foreach ($managers as $manager) {
             $manager->notify(new TicketCreatedNotification($ticket));
         }
     }
 
-    
+
     private function sendTicketUpdatedNotifications(Ticket $ticket, $update)
     {
         // ส่ง notification ให้ผู้แจ้งปัญหา
@@ -323,14 +319,14 @@ class TicketController extends Controller
         $otherManagers = User::whereIn('role', ['owner', 'head', 'agent'])
                             ->where('id', '!=', Auth::id())
                             ->get();
-        
+
         foreach ($otherManagers as $manager) {
             $manager->notify(new TicketUpdatedNotification($ticket, $update));
         }
     }
 
-    
-    
+
+
     private function sendTicketAssignedNotification(Ticket $ticket)
     {
         if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {

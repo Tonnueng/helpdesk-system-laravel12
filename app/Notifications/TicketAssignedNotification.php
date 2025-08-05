@@ -7,7 +7,6 @@ use Illuminate\Notifications\Notification;
 
 class TicketAssignedNotification extends Notification
 {
-
     public $ticket;
     public $assignedBy;
 
@@ -36,4 +35,4 @@ class TicketAssignedNotification extends Notification
             'message' => 'คุณได้รับมอบหมายปัญหา #' . $this->ticket->id
         ];
     }
-} 
+}

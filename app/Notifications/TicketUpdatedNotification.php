@@ -8,7 +8,6 @@ use Illuminate\Notifications\Notification;
 
 class TicketUpdatedNotification extends Notification
 {
-
     public $ticket;
     public $update;
 
@@ -38,4 +37,4 @@ class TicketUpdatedNotification extends Notification
             'message' => 'มีการอัปเดตปัญหา #' . $this->ticket->id
         ];
     }
-} 
+}

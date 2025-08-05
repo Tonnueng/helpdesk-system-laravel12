@@ -186,7 +186,9 @@
                     <div class="space-y-3">
                         @forelse($ticketsByPriority as $priority => $count)
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-700">{{ $priority }}</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {{ $priority }}
+                                </span>
                                 <span class="text-xs font-medium px-2.5 py-0.5 rounded-full
                                     @if($priority === 'Critical') bg-red-100 text-red-800
                                     @elseif($priority === 'High') bg-orange-100 text-orange-800

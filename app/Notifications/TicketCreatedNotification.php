@@ -7,7 +7,6 @@ use Illuminate\Notifications\Notification;
 
 class TicketCreatedNotification extends Notification
 {
-
     public $ticket;
 
     public function __construct(Ticket $ticket)
@@ -33,4 +32,4 @@ class TicketCreatedNotification extends Notification
             'message' => 'มีปัญหาใหม่ #' . $this->ticket->id . ' ที่ต้องการความช่วยเหลือ'
         ];
     }
-} 
+}

@@ -7,13 +7,10 @@ use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-    /**
-     * แสดงรายการ notifications ทั้งหมด
-     */
     public function index()
     {
         $notifications = Auth::user()->notifications()->paginate(20);
-        
+
         return view('notifications.index', compact('notifications'));
     }
 
@@ -23,7 +20,7 @@ class NotificationController extends Controller
     public function unread()
     {
         $notifications = Auth::user()->unreadNotifications()->paginate(20);
-        
+
         return response()->json([
             'notifications' => $notifications,
             'unread_count' => Auth::user()->unreadNotifications()->count()
