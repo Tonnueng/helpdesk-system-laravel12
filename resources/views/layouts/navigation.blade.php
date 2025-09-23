@@ -12,25 +12,26 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('แดชบอร์ด') }}
-                    </x-nav-link>
+                    <!-- Dashboard - สำหรับ Manager และ CEO เท่านั้น -->
+                    @if(Auth::user()->canViewDashboard())
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            {{ __('แดชบอร์ด') }}
+                        </x-nav-link>
+                    @endif
 
+                    <!-- แจ้งปัญหาใหม่ - ทุกคน -->
                     <x-nav-link :href="route('tickets.create')" :active="request()->routeIs('tickets.create')">
                         {{ __('แจ้งปัญหาใหม่') }}
                     </x-nav-link>
 
+                    <!-- รายการปัญหา - ทุกคน -->
                     <x-nav-link :href="route('tickets.index')" :active="request()->routeIs('tickets.index')">
                         {{ __('รายการปัญหา') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" class="relative">
+                    <!-- การแจ้งเตือน - ทุกคน -->
+                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
                         {{ __('การแจ้งเตือน') }}
-                        @if(Auth::user()->unreadNotifications()->count() > 0)
-                            <span class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                {{ Auth::user()->unreadNotifications()->count() }}
-                            </span>
-                        @endif
                     </x-nav-link>
                 </div>
 

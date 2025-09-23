@@ -46,14 +46,14 @@
             {{-- สถิติหลัก --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {{-- ปัญหาทั้งหมด --}}
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="bg-gradient-to-r from-sky-200 to-blue-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-sky-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-blue-100 text-sm font-medium">{{ __('ปัญหาทั้งหมด') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-white">{{ number_format($totalTickets) }}</p>
+                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาทั้งหมด') }}</p>
+                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($totalTickets) }}</p>
                         </div>
-                        <div class="bg-blue-400 bg-opacity-30 rounded-full p-3">
-                            <i class="fas fa-ticket-alt text-2xl text-white"></i>
+                        <div class="bg-sky-100 bg-opacity-50 rounded-full p-3">
+                            <i class="fas fa-ticket-alt text-2xl text-sky-600"></i>
                         </div>
                     </div>
                 </div>
@@ -64,14 +64,14 @@
                     if (isset($ticketsByStatus['New'])) $openTickets += $ticketsByStatus['New'];
                     if (isset($ticketsByStatus['In Progress'])) $openTickets += $ticketsByStatus['In Progress'];
                 @endphp
-                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="bg-gradient-to-r from-amber-200 to-orange-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-amber-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-yellow-100 text-sm font-medium">{{ __('ปัญหาที่ยังไม่แก้ไข') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-white">{{ number_format($openTickets) }}</p>
+                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาที่ยังไม่แก้ไข') }}</p>
+                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($openTickets) }}</p>
                         </div>
-                        <div class="bg-yellow-400 bg-opacity-30 rounded-full p-3">
-                            <i class="fas fa-clock text-2xl text-white"></i>
+                        <div class="bg-amber-100 bg-opacity-50 rounded-full p-3">
+                            <i class="fas fa-clock text-2xl text-amber-600"></i>
                         </div>
                     </div>
                 </div>
@@ -82,41 +82,41 @@
                     if (isset($ticketsByStatus['Resolved'])) $closedTickets += $ticketsByStatus['Resolved'];
                     if (isset($ticketsByStatus['Closed'])) $closedTickets += $ticketsByStatus['Closed'];
                 @endphp
-                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="bg-gradient-to-r from-emerald-200 to-green-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-emerald-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-green-100 text-sm font-medium">{{ __('ปัญหาที่แก้ไขแล้ว') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-white">{{ number_format($closedTickets) }}</p>
+                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาที่แก้ไขแล้ว') }}</p>
+                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($closedTickets) }}</p>
                         </div>
-                        <div class="bg-green-400 bg-opacity-30 rounded-full p-3">
-                            <i class="fas fa-check-circle text-2xl text-white"></i>
+                        <div class="bg-emerald-100 bg-opacity-50 rounded-full p-3">
+                            <i class="fas fa-check-circle text-2xl text-emerald-600"></i>
                         </div>
                     </div>
                 </div>
 
                 {{-- ปัญหาที่มอบหมายให้ฉัน --}}
                 @if (Auth::user()->canManageTickets())
-                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="bg-gradient-to-r from-violet-200 to-purple-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-violet-100">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-purple-100 text-sm font-medium">{{ __('มอบหมายให้ฉัน') }}</p>
-                                <p class="text-3xl font-bold mt-1 text-white">{{ number_format($assignedTickets) }}</p>
+                                <p class="text-slate-600 text-sm font-medium">{{ __('มอบหมายให้ฉัน') }}</p>
+                                <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($assignedTickets) }}</p>
                             </div>
-                            <div class="bg-purple-400 bg-opacity-30 rounded-full p-3">
-                                <i class="fas fa-user-tie text-2xl text-white"></i>
+                            <div class="bg-violet-100 bg-opacity-50 rounded-full p-3">
+                                <i class="fas fa-user-tie text-2xl text-violet-600"></i>
                             </div>
                         </div>
                     </div>
                 @else
                     {{-- สำหรับผู้ใช้ทั่วไป --}}
-                    <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="bg-gradient-to-r from-indigo-200 to-blue-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-indigo-100">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-indigo-100 text-sm font-medium">{{ __('ปัญหาของฉัน') }}</p>
-                                <p class="text-3xl font-bold mt-1 text-white">{{ number_format($totalTickets) }}</p>
+                                <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาของฉัน') }}</p>
+                                <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($totalTickets) }}</p>
                             </div>
-                            <div class="bg-indigo-400 bg-opacity-30 rounded-full p-3">
-                                <i class="fas fa-user text-2xl text-white"></i>
+                            <div class="bg-indigo-100 bg-opacity-50 rounded-full p-3">
+                                <i class="fas fa-user text-2xl text-indigo-600"></i>
                             </div>
                         </div>
                     </div>

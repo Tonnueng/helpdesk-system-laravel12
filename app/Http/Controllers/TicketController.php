@@ -39,7 +39,19 @@ class TicketController extends Controller
             $query->where('status_id', $request->status);
         }
 
-        // กรองตามประเภท
+        // กรองตามหมวดหมู่หลัก
+        if ($request->filled('main_category')) {
+            $query->whereHas('category', function($q) use ($request) {
+                $q->where('parent_category', $request->main_category);
+            });
+        }
+
+        // กรองตามหมวดหมู่ย่อย
+        if ($request->filled('sub_category')) {
+            $query->where('category_id', $request->sub_category);
+        }
+
+        // กรองตามประเภท (สำหรับ backward compatibility)
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
@@ -57,8 +69,20 @@ class TicketController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // ถ้าผู้ใช้งานมีสิทธิ์จัดการ Ticket (เจ้าของ, หัวหน้า, เจ้าหน้าที่) ให้แสดงปัญหาทั้งหมด
-        if (Auth::user()->canManageTickets()) {
+        // กำหนดสิทธิ์การดูปัญหาตาม Role ใหม่
+        if (Auth::user()->isEmployee()) {
+            // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
+            $query->where('user_id', Auth::id());
+        } elseif (Auth::user()->isLeader()) {
+            // หัวหน้าทีม: ดูปัญหาที่มอบหมายให้ + ปัญหาของทีม (ตาม department)
+            $query->where(function ($q) {
+                $q->where('assigned_to_user_id', Auth::id()) // ปัญหาที่มอบหมายให้
+                  ->orWhereHas('user', function ($userQuery) {
+                      $userQuery->where('department', Auth::user()->department);
+                  }); // ปัญหาของทีม
+            });
+        } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
+            // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
             // กรองตามผู้รับผิดชอบ
             if ($request->filled('assigned_to')) {
                 if ($request->assigned_to === 'me') {
@@ -69,9 +93,6 @@ class TicketController extends Controller
                     $query->where('assigned_to_user_id', $request->assigned_to);
                 }
             }
-        } else {
-            // ถ้าเป็นผู้ใช้งานทั่วไป (role: 'user') ให้แสดงเฉพาะปัญหาที่ตัวเองแจ้ง
-            $query->where('user_id', Auth::id());
         }
 
         // เรียงลำดับ
@@ -85,76 +106,205 @@ class TicketController extends Controller
         $categories = Category::all();
         $priorities = Priority::all();
         $statuses = Status::all();
-        $agents = User::whereIn('role', ['owner', 'head', 'agent'])->get();
+        $agents = User::whereIn('role', ['leader', 'manager', 'ceo'])->get();
 
-        return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents'));
+
+        // กำหนดสถานะที่จะแสดงใน Kanban Board
+        $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
+        
+        // ถ้ามีการเลือกสถานะในตัวกรอง ให้เพิ่มสถานะนั้นเข้าไป
+        if ($request->filled('status')) {
+            $selectedStatus = Status::find($request->status);
+            if ($selectedStatus && in_array($selectedStatus->name, ['Closed', 'Rejected'])) {
+                $kanbanStatuses[] = $selectedStatus->name;
+            }
+        }
+
+        return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents', 'kanbanStatuses'));
     }
 
+    public function ajaxIndex(Request $request)
+    {
+        $query = Ticket::with(['user', 'category', 'priority', 'status']);
+
+        // ค้นหาตามคำค้น
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // กรองตามสถานะ
+        if ($request->filled('status')) {
+            $query->where('status_id', $request->status);
+        }
+
+        // กรองตามหมวดหมู่หลัก
+        if ($request->filled('main_category')) {
+            $query->whereHas('category', function($q) use ($request) {
+                $q->where('parent_category', $request->main_category);
+            });
+        }
+
+        // กรองตามหมวดหมู่ย่อย
+        if ($request->filled('sub_category')) {
+            $query->where('category_id', $request->sub_category);
+        }
+
+        // กรองตามประเภท (สำหรับ backward compatibility)
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        // กรองตามระดับความสำคัญ
+        if ($request->filled('priority')) {
+            $query->where('priority_id', $request->priority);
+        }
+
+        // กรองตามวันที่
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // กำหนดสิทธิ์การดูปัญหาตาม Role ใหม่
+        if (Auth::user()->isEmployee()) {
+            // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
+            $query->where('user_id', Auth::id());
+        } elseif (Auth::user()->isLeader()) {
+            // หัวหน้าทีม: ดูปัญหาที่มอบหมายให้ + ปัญหาของทีม (ตาม department)
+            $query->where(function ($q) {
+                $q->where('assigned_to_user_id', Auth::id()) // ปัญหาที่มอบหมายให้
+                  ->orWhereHas('user', function ($userQuery) {
+                      $userQuery->where('department', Auth::user()->department);
+                  }); // ปัญหาของทีม
+            });
+        } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
+            // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
+            // กรองตามผู้รับผิดชอบ
+            if ($request->filled('assigned_to')) {
+                if ($request->assigned_to === 'me') {
+                    $query->where('assigned_to_user_id', Auth::id());
+                } elseif ($request->assigned_to === 'unassigned') {
+                    $query->whereNull('assigned_to_user_id');
+                } else {
+                    $query->where('assigned_to_user_id', $request->assigned_to);
+                }
+            }
+        }
+
+        // เรียงลำดับ
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $tickets = $query->get();
+
+        // จัดกลุ่มตามสถานะ
+        $groupedTickets = $tickets->groupBy('status.name');
+
+        // กำหนดสถานะที่จะแสดงใน Kanban Board
+        $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
+        
+        // ถ้ามีการเลือกสถานะในตัวกรอง ให้เพิ่มสถานะนั้นเข้าไป
+        if ($request->filled('status')) {
+            $selectedStatus = Status::find($request->status);
+            if ($selectedStatus && in_array($selectedStatus->name, ['Closed', 'Rejected'])) {
+                $kanbanStatuses[] = $selectedStatus->name;
+            }
+        }
+
+        return response()->json([
+            'tickets' => $groupedTickets,
+            'kanbanStatuses' => $kanbanStatuses
+        ]);
+    }
 
     public function create()
     {
-        // โหลดข้อมูล Category, Priority, Status เพื่อใช้ใน Dropdown ของฟอร์ม
-        $categories = Category::all();
+        // โหลดข้อมูลหมวดหมู่หลักและย่อย, Priority, Status เพื่อใช้ใน Dropdown ของฟอร์ม
+        $mainCategories = Category::mainCategories()->get();
         $priorities = Priority::all();
         $statuses = Status::all(); // อาจไม่จำเป็นสำหรับฟอร์มสร้าง แต่เตรียมไว้ก่อน
 
-        return view('tickets.create', compact('categories', 'priorities', 'statuses'));
+        return view('tickets.create', compact('mainCategories', 'priorities', 'statuses'));
     }
 
     public function store(Request $request)
     {
+
         try {
             // 1. ตรวจสอบข้อมูลจากฟอร์ม
             $validatedData = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'category_id' => 'required|exists:categories,id',
+                'main_category' => 'required|string',
+                'sub_category_id' => 'required|exists:categories,id',
                 'priority_id' => 'required|exists:priorities,id',
                 'reported_at' => 'nullable|date',
-                'attachments.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:2048', // 2MB per file
+                'phone' => 'nullable|string|max:30',
+                'position' => 'nullable|in:หัวหน้า,พนักงานปกติ',
+                'department' => 'nullable|in:programer,product,marketing,admin,hr,manager,editor,finance',
             ], [
                 'title.required' => 'กรุณากรอกหัวข้อปัญหา',
                 'description.required' => 'กรุณากรอกรายละเอียดปัญหา',
-                'category_id.required' => 'กรุณาเลือกประเภทปัญหา',
-                'category_id.exists' => 'ประเภทปัญหาไม่ถูกต้อง',
+                'main_category.required' => 'กรุณาเลือกหมวดหมู่หลัก',
+                'sub_category_id.required' => 'กรุณาเลือกหมวดหมู่ย่อย',
+                'sub_category_id.exists' => 'หมวดหมู่ย่อยไม่ถูกต้อง',
                 'priority_id.required' => 'กรุณาเลือกระดับความสำคัญ',
                 'priority_id.exists' => 'ระดับความสำคัญไม่ถูกต้อง',
                 'reported_at.date' => 'รูปแบบวันที่และเวลาไม่ถูกต้อง',
-                'attachments.*.mimes' => 'รองรับไฟล์ประเภท jpeg, png, jpg, gif, pdf, doc, docx เท่านั้น',
-                'attachments.*.max' => 'ขนาดไฟล์ไม่ควรเกิน 2MB',
+                'phone.max' => 'เบอร์โทรศัพท์ยาวเกินไป',
+                'position.in' => 'ตำแหน่งไม่ถูกต้อง',
+                'department.in' => 'แผนกไม่ถูกต้อง',
             ]);
 
-            // 2. สร้าง Ticket ใหม่
+            // 2. อัปเดตข้อมูลส่วนตัวของผู้ใช้ (phone, position, department)
+            $user = Auth::user();
+            $user->phone = $validatedData['phone'] ?? $user->phone;
+            $user->position = $validatedData['position'] ?? $user->position;
+            $user->department = $validatedData['department'] ?? $user->department;
+            $user->save();
+
+            // 3. หาหัวหน้าตามหมวดหมู่หลัก
+            $mainCategory = $validatedData['main_category'];
+            $assignedLeader = $this->findLeaderByMainCategory($mainCategory);
+
+            // 4. สร้าง Ticket ใหม่
             $ticket = new Ticket();
-            $ticket->user_id = Auth::id(); // ผู้แจ้งคือผู้ที่เข้าสู่ระบบปัจจุบัน
-            $ticket->category_id = $validatedData['category_id'];
+            $ticket->user_id = $user->id; // ผู้แจ้งคือผู้ที่เข้าสู่ระบบปัจจุบัน
+            $ticket->category_id = $validatedData['sub_category_id']; // ใช้หมวดหมู่ย่อย
             $ticket->priority_id = $validatedData['priority_id'];
             $ticket->status_id = Status::where('name', 'New')->first()->id; // กำหนดสถานะเริ่มต้นเป็น 'New'
             $ticket->title = $validatedData['title'];
             $ticket->description = $validatedData['description'];
             $ticket->reported_at = $validatedData['reported_at'];
+            
+            // มอบหมายให้หัวหน้าตามหมวดหมู่หลัก
+            if ($assignedLeader) {
+                $ticket->assigned_to_user_id = $assignedLeader->id;
+            }
+            
             $ticket->save();
 
-            // 3. จัดการไฟล์แนบ
-            if ($request->hasFile('attachments')) {
-                foreach ($request->file('attachments') as $file) {
-                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    // เก็บไฟล์ใน storage/app/public/attachments
-                    $filepath = $file->storeAs('public/attachments', $filename);
 
-                    // บันทึกข้อมูลไฟล์ลงในตาราง ticket_attachments
-                    $ticket->attachments()->create([
-                        'filename' => $file->getClientOriginalName(), // ชื่อไฟล์เดิม
-                        'filepath' => Storage::url($filepath), // Path ที่สามารถเข้าถึงได้
-                        'mime_type' => $file->getClientMimeType(),
-                    ]);
-                }
+
+            // 5. สร้าง Ticket Update (แจ้งว่ามีการสร้าง Ticket ใหม่)
+            $comment = 'Ticket created.';
+            if ($assignedLeader) {
+                $comment .= ' Assigned to ' . $assignedLeader->name . ' (Team Leader for ' . $mainCategory . ').';
             }
-
-            // 4. สร้าง Ticket Update (แจ้งว่ามีการสร้าง Ticket ใหม่)
+            
             $ticket->updates()->create([
                 'user_id' => Auth::id(),
-                'comment' => 'Ticket created.',
+                'comment' => $comment,
                 'status_id' => $ticket->status_id,
             ]);
 
@@ -176,8 +326,22 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket)
     {
-        // ตรวจสอบสิทธิ์: ถ้าไม่ใช่ผู้แจ้งเอง และไม่มีสิทธิ์จัดการ Ticket ให้ปฏิเสธการเข้าถึง
-        if ($ticket->user_id !== Auth::id() && !Auth::user()->canManageTickets()) {
+        // ตรวจสอบสิทธิ์การดูปัญหาตาม Role ใหม่
+        $canView = false;
+        
+        if (Auth::user()->isEmployee()) {
+            // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
+            $canView = ($ticket->user_id === Auth::id());
+        } elseif (Auth::user()->isLeader()) {
+            // หัวหน้าทีม: ดูปัญหาที่มอบหมายให้ + ปัญหาของทีม (ตาม department)
+            $canView = ($ticket->assigned_to_user_id === Auth::id()) || 
+                      ($ticket->user->department === Auth::user()->department);
+        } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
+            // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
+            $canView = true;
+        }
+        
+        if (!$canView) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -187,9 +351,18 @@ class TicketController extends Controller
         // โหลดสถานะทั้งหมดสำหรับ Dropdown การเปลี่ยนสถานะ (สำหรับผู้ดูแล)
         $statuses = Status::all();
 
-        // ดึงผู้ใช้งานที่มี Role เป็น 'owner', 'head' หรือ 'agent' มาแสดงใน Dropdown 'มอบหมายให้'
-        // นี่คือผู้ที่สามารถรับผิดชอบ Ticket ได้
-        $agents = \App\Models\User::whereIn('role', ['owner', 'head', 'agent'])->get();
+        // ดึงผู้ใช้งานที่สามารถรับผิดชอบ Ticket ได้
+        $user = Auth::user();
+        if ($user->isCEO() || $user->isManager()) {
+            // CEO และผู้จัดการ: สามารถเลือกหัวหน้าทีม, ผู้จัดการ, และ CEO อื่นๆ
+            $agents = \App\Models\User::whereIn('role', ['leader', 'manager', 'ceo'])->get();
+        } elseif ($user->isLeader()) {
+            // หัวหน้าทีม: สามารถเลือกหัวหน้าทีมคนอื่นและผู้จัดการ
+            $agents = \App\Models\User::whereIn('role', ['leader', 'manager'])->get();
+        } else {
+            // พนักงาน: ไม่สามารถมอบหมายให้ใคร
+            $agents = collect();
+        }
 
         return view('tickets.show', compact('ticket', 'statuses', 'agents'));
     }
@@ -203,7 +376,7 @@ class TicketController extends Controller
 
     public function update(Request $request, Ticket $ticket)
     {
-        // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่แก้ไขได้
+        // ตรวจสอบสิทธิ์: เฉพาะ Leader, Manager, CEO เท่านั้นที่แก้ไขได้
         if (!Auth::user()->canManageTickets()) {
             abort(403, 'Unauthorized action.');
         }
@@ -214,10 +387,9 @@ class TicketController extends Controller
                 'status_id' => 'required|exists:statuses,id',
                 'assigned_to_user_id' => [
                     'nullable',
-                    'required',
-                    // ตรวจสอบว่าผู้ที่ถูกมอบหมายมี role เป็น owner, head, หรือ agent
+                    // ตรวจสอบว่าผู้ที่ถูกมอบหมายมี role เป็น manager, leader, หรือ ceo (ถ้ามีการเลือก)
                     Rule::exists('users', 'id')->where(function ($query) {
-                        $query->whereIn('role', ['owner', 'head', 'agent']);
+                        $query->whereIn('role', ['manager', 'leader', 'ceo']);
                     }),
                 ],
                 'comment' => 'nullable|string|max:1000',
@@ -265,7 +437,7 @@ class TicketController extends Controller
             // 4. ส่ง In-app Notifications
             $this->sendTicketUpdatedNotifications($ticket, $ticket->updates()->latest()->first());
 
-            return redirect()->route('tickets.show', $ticket)->with('success', 'อัปเดตปัญหาสำเร็จแล้ว!');
+            return redirect()->route('tickets.index')->with('success', 'อัปเดตปัญหาสำเร็จแล้ว!');
 
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -277,7 +449,7 @@ class TicketController extends Controller
 
     public function destroy(Ticket $ticket)
     {
-        // ตรวจสอบสิทธิ์: เฉพาะผู้ที่มีสิทธิ์จัดการ Ticket เท่านั้นที่ลบได้
+        // ตรวจสอบสิทธิ์: เฉพาะ Leader, Manager, CEO เท่านั้นที่ลบได้
         if (!Auth::user()->canManageTickets()) {
             abort(403, 'Unauthorized action.');
         }
@@ -293,10 +465,15 @@ class TicketController extends Controller
 
     private function sendTicketCreatedNotifications(Ticket $ticket)
     {
-        // หาผู้ดูแลทั้งหมด (owner, head, agent)
-        $managers = User::whereIn('role', ['owner', 'head', 'agent'])->get();
+        // ส่ง notification ให้หัวหน้าทีมที่ได้รับมอบหมาย
+        if ($ticket->assignedTo) {
+            $ticket->assignedTo->notify(new TicketCreatedNotification($ticket));
+        }
 
-        // ส่ง notification ให้ผู้ดูแลทุกคน
+        // หาผู้จัดการและ CEO
+        $managers = User::whereIn('role', ['manager', 'ceo'])->get();
+
+        // ส่ง notification ให้ผู้จัดการและ CEO
         foreach ($managers as $manager) {
             $manager->notify(new TicketCreatedNotification($ticket));
         }
@@ -332,5 +509,31 @@ class TicketController extends Controller
         if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
             $ticket->assignedTo->notify(new TicketAssignedNotification($ticket, Auth::user()));
         }
+    }
+
+    /**
+     * หาหัวหน้าตามหมวดหมู่หลัก
+     */
+    private function findLeaderByMainCategory($mainCategory)
+    {
+        // Mapping หมวดหมู่หลักกับหัวหน้าทีม
+        $categoryLeaderMapping = [
+            'Operation & Production' => 'leader.operation@test.com',
+            'Sales & Customer' => 'leader.sales@test.com',
+            'Marketing & Ads' => 'leader.marketing@test.com',
+            'Finance & Accounting' => 'leader.finance@test.com',
+            'People & HR' => 'leader.hr@test.com',
+            'IT & Systems' => 'leader.it@test.com',
+            'Supplier & Partner' => 'leader.supplier@test.com',
+            'Strategy & Management' => 'leader.strategy@test.com',
+        ];
+
+        $leaderEmail = $categoryLeaderMapping[$mainCategory] ?? null;
+        
+        if ($leaderEmail) {
+            return User::where('email', $leaderEmail)->where('role', 'leader')->first();
+        }
+
+        return null;
     }
 }

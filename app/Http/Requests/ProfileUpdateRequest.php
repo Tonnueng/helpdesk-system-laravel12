@@ -15,7 +15,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -25,6 +25,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'position' => ['nullable', Rule::in(['หัวหน้า', 'พนักงานปกติ'])],
+            'department' => ['nullable', Rule::in(['programer', 'product', 'marketing', 'admin', 'hr', 'manager', 'editor', 'finance'])],
         ];
+        // เฉพาะ head เท่านั้นที่สามารถแก้ไข role ได้
+        if (auth()->user() && auth()->user()->role === 'head') {
+            $rules['role'] = ['required', Rule::in(['owner', 'head', 'agent', 'user'])];
+        }
+        return $rules;
     }
 }

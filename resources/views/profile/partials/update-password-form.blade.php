@@ -1,57 +1,71 @@
-<section class="p-8 bg-white rounded-2xl shadow-xl transition-all duration-300">
-    <header class="mb-6 pb-4 border-b border-gray-200">
-        <h2 class="text-3xl font-extrabold text-indigo-700 leading-tight">
-            {{ __('เปลี่ยนรหัสผ่าน') }}
-        </h2>
-        <p class="mt-2 text-md text-gray-500">
-            {{ __('เพื่อความปลอดภัย กรุณาใช้รหัสผ่านที่สุ่มและคาดเดายาก') }}
-        </p>
-    </header>
-
     <form method="post" action="{{ route('password.update') }}" class="space-y-6">
         @csrf
         @method('put')
 
-        <!-- รหัสผ่านปัจจุบัน -->
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('รหัสผ่านปัจจุบัน')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password"
-                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm transition duration-300 ease-in-out focus:border-indigo-500 focus:ring-indigo-500"
-                autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2 text-red-500" />
+        <!-- Security Notice -->
+        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <div class="flex items-center">
+                <i class="fas fa-shield-alt text-emerald-500 mr-3"></i>
+                <p class="text-sm text-emerald-800">
+                    เพื่อความปลอดภัย กรุณาใช้รหัสผ่านที่แข็งแกร่งและไม่เคยใช้ที่อื่น
+                </p>
+            </div>
         </div>
 
-        <!-- รหัสผ่านใหม่ -->
-        <div>
-            <x-input-label for="update_password_password" :value="__('รหัสผ่านใหม่')" />
-            <x-text-input id="update_password_password" name="password" type="password"
-                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm transition duration-300 ease-in-out focus:border-indigo-500 focus:ring-indigo-500"
-                autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2 text-red-500" />
-        </div>
+        <!-- Grid Layout for Password Fields -->
+        <div class="grid grid-cols-1 gap-6">
+            
+            <!-- รหัสผ่านปัจจุบัน -->
+            <div class="space-y-2">
+                <label for="update_password_current_password" class="block text-sm font-medium text-slate-700">
+                    <i class="fas fa-lock mr-2 text-emerald-500"></i>รหัสผ่านปัจจุบัน
+                </label>
+                <input id="update_password_current_password" name="current_password" type="password"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200"
+                    autocomplete="current-password" />
+                <x-input-error :messages="$errors->updatePassword->get('current_password')" class="text-red-500 text-sm" />
+            </div>
 
-        <!-- ยืนยันรหัสผ่านใหม่ -->
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('ยืนยันรหัสผ่าน')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password"
-                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm transition duration-300 ease-in-out focus:border-indigo-500 focus:ring-indigo-500"
-                autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2 text-red-500" />
+            <!-- รหัสผ่านใหม่ -->
+            <div class="space-y-2">
+                <label for="update_password_password" class="block text-sm font-medium text-slate-700">
+                    <i class="fas fa-key mr-2 text-emerald-500"></i>รหัสผ่านใหม่
+                </label>
+                <input id="update_password_password" name="password" type="password"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200"
+                    autocomplete="new-password" />
+                <x-input-error :messages="$errors->updatePassword->get('password')" class="text-red-500 text-sm" />
+            </div>
+
+            <!-- ยืนยันรหัสผ่านใหม่ -->
+            <div class="space-y-2">
+                <label for="update_password_password_confirmation" class="block text-sm font-medium text-slate-700">
+                    <i class="fas fa-check-double mr-2 text-emerald-500"></i>ยืนยันรหัสผ่านใหม่
+                </label>
+                <input id="update_password_password_confirmation" name="password_confirmation" type="password"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-200"
+                    autocomplete="new-password" />
+                <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="text-red-500 text-sm" />
+            </div>
+
         </div>
 
         <!-- ปุ่มบันทึกและสถานะ -->
-        <div class="flex items-center gap-4 pt-4">
-            <x-primary-button
-                class="rounded-full px-6 py-2 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg transition duration-300 ease-in-out">
-                {{ __('บันทึก') }}
-            </x-primary-button>
+        <div class="flex items-center justify-between pt-6 border-t border-slate-200">
+            <div class="flex items-center space-x-4">
+                <button type="submit"
+                    class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-medium rounded-lg hover:from-emerald-600 hover:to-green-700 focus:ring-4 focus:ring-emerald-200 transition duration-200 shadow-lg hover:shadow-xl">
+                    <i class="fas fa-save mr-2"></i>
+                    อัปเดตรหัสผ่าน
+                </button>
 
-            @if (session('status') === 'password-updated')
-                <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm font-semibold text-green-600">
-                    {{ __('บันทึกแล้ว') }}
-                </p>
-            @endif
+                @if (session('status') === 'password-updated')
+                    <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
+                        class="flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span class="text-sm font-medium text-green-800">รหัสผ่านอัปเดตแล้ว</span>
+                    </div>
+                @endif
+            </div>
         </div>
     </form>
-</section>

@@ -26,6 +26,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role', // เพิ่ม role เข้ามา (จะใช้ในการกำหนดสิทธิ์ admin/user)
+        'phone',
+        'position',
+        'department',
     ];
 
     /**
@@ -67,28 +70,67 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(TicketUpdate::class);
     }
 
-    // Helper for role
-    public function isOwner(): bool
+    // Role Methods - ระบบ Role ใหม่
+    public function isEmployee(): bool
     {
-        return $this->role === 'owner';
+        return $this->role === 'employee';
     }
 
-    // ตรวจสอบว่าเป็น "หัวหน้าระบบ" หรือไม่
-    public function isHead(): bool
+    public function isLeader(): bool
     {
-        return $this->role === 'head';
+        return $this->role === 'leader';
     }
 
-    // ตรวจสอบว่าเป็น "เจ้าหน้าที่" หรือไม่ (ผู้ที่ได้รับมอบหมายงานได้)
-    public function isAgent(): bool
+    public function isManager(): bool
     {
-        return $this->role === 'agent' || $this->role === 'head' || $this->role === 'owner'; // Owner และ Head ก็ถือเป็น Agent ได้ในที่นี้
+        return $this->role === 'manager';
     }
 
-    // ตรวจสอบว่ามีสิทธิ์ในการจัดการ Ticket ได้หรือไม่ (เช่น เจ้าของ, หัวหน้า, เจ้าหน้าที่)
+    public function isCEO(): bool
+    {
+        return $this->role === 'ceo';
+    }
+
+    // Permission Methods - สิทธิ์ตาม Role ใหม่
     public function canManageTickets(): bool
     {
-        return $this->isOwner() || $this->isHead() || $this->isAgent();
+        return $this->isLeader() || $this->isManager() || $this->isCEO();
+    }
+
+    public function canViewAllTickets(): bool
+    {
+        return $this->isManager() || $this->isCEO();
+    }
+
+    public function canViewDashboard(): bool
+    {
+        return $this->isManager() || $this->isCEO();
+    }
+
+    public function canViewStrategicData(): bool
+    {
+        return $this->isCEO();
+    }
+
+    public function canViewTeamTickets(): bool
+    {
+        return $this->isLeader() || $this->isManager() || $this->isCEO();
+    }
+
+    // Backward compatibility methods (สำหรับโค้ดเก่า)
+    public function isOwner(): bool
+    {
+        return $this->isCEO();
+    }
+
+    public function isHead(): bool
+    {
+        return $this->isManager();
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->isLeader() || $this->isManager() || $this->isCEO();
     }
 
     // Notification relationships

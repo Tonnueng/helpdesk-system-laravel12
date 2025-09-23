@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             PrioritySeeder::class,
             StatusSeeder::class,
-            AdminUserSeeder::class, // เรียกใช้ AdminUserSeeder หลังจาก Seeder อื่นๆ
             TestUserSeeder::class,
         ]);
     }

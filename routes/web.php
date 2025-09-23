@@ -13,15 +13,26 @@ use App\Models\Priority;
 use App\Models\User;
 
 Route::get('/', function () {
-    // ถ้าผู้ใช้ล็อกอินแล้ว ให้ไปที่ dashboard
+    // ถ้าผู้ใช้ล็อกอินแล้ว ให้ redirect ตาม Role
     if (Auth::check()) {
-        return redirect()->route('dashboard');
+        $user = Auth::user();
+        
+        if ($user->isEmployee() || $user->isLeader()) {
+            // พนักงานและหัวหน้าทีม: ไปหน้าแจ้งปัญหา
+            return redirect()->route('tickets.create');
+        } elseif ($user->isManager() || $user->isCEO()) {
+            // ผู้จัดการและ CEO: ไปหน้า Dashboard
+            return redirect()->route('dashboard');
+        }
+        
+        // Default fallback
+        return redirect()->route('tickets.create');
     }
     // ถ้ายังไม่ล็อกอิน ให้ไปที่หน้า login
     return redirect()->route('login');
 });
 
-Route::middleware('auth', 'verified')->group(function () {
+Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', function () {        // ดึงข้อมูลสถิติพื้นฐาน
         $totalTickets = Ticket::count();
@@ -161,6 +172,28 @@ Route::middleware('auth', 'verified')->group(function () {
 
     // เส้นทางสำหรับ Tickets (ใช้ middleware 'auth' เพื่อให้เข้าถึงได้เฉพาะผู้ที่เข้าสู่ระบบแล้ว)
     Route::resource('tickets', TicketController::class);
+    
+    // AJAX route for refreshing tickets data
+    Route::get('/tickets-ajax', [TicketController::class, 'ajaxIndex'])->name('tickets.ajax');
+    
+    // API route for getting subcategories
+    Route::get('/api/categories/{mainCategory}/subcategories', function($mainCategory) {
+        try {
+            // หา subcategories โดยใช้ parent_category
+            $subcategories = \App\Models\Category::where('parent_category', $mainCategory)
+                                                ->select('id', 'name')
+                                                ->get();
+            
+            return response()->json([
+                'subcategories' => $subcategories
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'subcategories' => [],
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
     Route::delete('/attachments/{attachment}', [TicketAttachmentController::class, 'destroy'])->name('attachments.destroy');
 
     // เส้นทางสำหรับ Notifications
@@ -172,5 +205,8 @@ Route::middleware('auth', 'verified')->group(function () {
     Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
 
 });
+
+// API Routes for categories (outside auth middleware)
+Route::get('/api/categories/subcategories/{mainCategory}', [\App\Http\Controllers\Api\CategoryController::class, 'getSubCategories']);
 
 require __DIR__.'/auth.php';

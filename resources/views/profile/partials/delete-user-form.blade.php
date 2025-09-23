@@ -1,19 +1,26 @@
-<section class="p-8 bg-white rounded-xl shadow-md space-y-6">
-    <header class="border-b pb-4">
-        <h2 class="text-3xl font-bold text-indigo-700">
-            {{ __('ลบบัญชีผู้ใช้') }}
-        </h2>
-        <p class="mt-1 text-sm text-gray-500">
-            {{ __('เมื่อคุณลบบัญชี ข้อมูลและทรัพยากรทั้งหมดจะถูกลบอย่างถาวร กรุณาดาวน์โหลดข้อมูลที่ต้องการเก็บไว้ก่อนดำเนินการ') }}
-        </p>
-    </header>
+    <!-- Warning Notice -->
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-lg">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-rose-500 mt-1 mr-3"></i>
+            <div>
+                <p class="text-sm text-rose-800 font-medium mb-1">คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                <p class="text-sm text-rose-700">
+                    เมื่อคุณลบบัญชี ข้อมูลและทรัพยากรทั้งหมดจะถูกลบอย่างถาวร กรุณาดาวน์โหลดข้อมูลที่ต้องการเก็บไว้ก่อนดำเนินการ
+                </p>
+            </div>
+        </div>
+    </div>
 
     <!-- 🔴 ปุ่มเปิด Modal -->
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-        class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition ease-in-out"
-    >{{ __('ลบบัญชี') }}</x-danger-button>
+    <div class="pt-4">
+        <button type="button"
+            x-data=""
+            x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
+            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white font-medium rounded-lg hover:from-rose-600 hover:to-red-700 focus:ring-4 focus:ring-rose-200 transition duration-200 shadow-lg hover:shadow-xl">
+            <i class="fas fa-trash-alt mr-2"></i>
+            ลบบัญชีผู้ใช้
+        </button>
+    </div>
 
     <!-- 🧾 Modal ยืนยันการลบ -->
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
@@ -21,38 +28,44 @@
             @csrf
             @method('delete')
 
-            <h2 class="text-xl font-semibold text-gray-800">
-                {{ __('คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีนี้?') }}
-            </h2>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-rose-600 text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-slate-800 mb-2">
+                    คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีนี้?
+                </h2>
+                <p class="text-sm text-slate-600">
+                    เมื่อบัญชีถูกลบ ข้อมูลทั้งหมดจะหายไปอย่างถาวร กรุณากรอกรหัสผ่านเพื่อยืนยันการลบ
+                </p>
+            </div>
 
-            <p class="text-sm text-gray-500">
-                {{ __('เมื่อบัญชีถูกลบ ข้อมูลทั้งหมดจะหายไปอย่างถาวร กรุณากรอกรหัสผ่านเพื่อยืนยันการลบ') }}
-            </p>
-
-            <div>
-                <x-input-label for="password" value="{{ __('รหัสผ่าน') }}" class="sr-only" />
-                <x-text-input
+            <div class="space-y-2">
+                <label for="password" class="block text-sm font-medium text-slate-700">
+                    <i class="fas fa-lock mr-2 text-rose-500"></i>รหัสผ่านเพื่อยืนยัน
+                </label>
+                <input
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="{{ __('รหัสผ่าน') }}"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring focus:ring-red-300 focus:ring-opacity-50"
+                    placeholder="กรอกรหัสผ่านของคุณ"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition duration-200"
                 />
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2 text-red-500" />
+                <x-input-error :messages="$errors->userDeletion->get('password')" class="text-red-500 text-sm" />
             </div>
 
-            <div class="flex justify-end gap-3">
-                <x-secondary-button class="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition ease-in-out"
-                    x-on:click="$dispatch('close')">
-                    {{ __('ยกเลิก') }}
-                </x-secondary-button>
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button"
+                    x-on:click="$dispatch('close')"
+                    class="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-lg transition duration-200">
+                    ยกเลิก
+                </button>
 
-                <x-danger-button
-                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition ease-in-out"
-                >
-                    {{ __('ลบบัญชี') }}
-                </x-danger-button>
+                <button type="submit"
+                    class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white font-medium rounded-lg hover:from-rose-600 hover:to-red-700 focus:ring-4 focus:ring-rose-200 transition duration-200 shadow-lg hover:shadow-xl">
+                    <i class="fas fa-trash-alt mr-2"></i>
+                    ลบบัญชี
+                </button>
             </div>
         </form>
     </x-modal>
-</section>

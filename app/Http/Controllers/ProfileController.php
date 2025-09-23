@@ -26,7 +26,12 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $data = $request->validated();
+        // เฉพาะ head เท่านั้นที่สามารถแก้ไข role ได้
+        if (!auth()->user() || auth()->user()->role !== 'head') {
+            unset($data['role']);
+        }
+        $request->user()->fill($data);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

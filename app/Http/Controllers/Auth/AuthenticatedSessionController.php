@@ -28,7 +28,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Redirect ตาม Role ของผู้ใช้
+        $user = Auth::user();
+        
+        if ($user->isEmployee() || $user->isLeader()) {
+            // พนักงานและหัวหน้าทีม: ไปหน้าแจ้งปัญหา
+            return redirect()->intended(route('tickets.create', absolute: false));
+        } elseif ($user->isManager() || $user->isCEO()) {
+            // ผู้จัดการและ CEO: ไปหน้า Dashboard
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+        
+        // Default fallback
+        return redirect()->intended(route('tickets.create', absolute: false));
     }
 
     /**

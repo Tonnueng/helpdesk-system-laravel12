@@ -10,36 +10,59 @@ class TestUserSeeder extends Seeder
 {
     public function run(): void
     {
-        // สร้างผู้ใช้ทดสอบ
+        // สร้างผู้ใช้ทดสอบตาม Role ใหม่
         User::create([
-            'name' => 'ผู้แจ้งปัญหา',
-            'email' => 'user@test.com',
+            'name' => 'พนักงาน 1',
+            'email' => 'employee1@test.com',
             'password' => Hash::make('password'),
-            'role' => 'user',
+            'role' => 'employee',
+            'phone' => '081-234-5678',
+            'position' => 'พนักงานขาย',
+            'department' => 'ฝ่ายขาย',
             'email_verified_at' => now(),
         ]);
 
         User::create([
-            'name' => 'เจ้าหน้าที่ 1',
-            'email' => 'agent1@test.com',
+            'name' => 'พนักงาน 2',
+            'email' => 'employee2@test.com',
             'password' => Hash::make('password'),
-            'role' => 'agent',
+            'role' => 'employee',
+            'phone' => '082-345-6789',
+            'position' => 'พนักงานบัญชี',
+            'department' => 'ฝ่ายบัญชี',
             'email_verified_at' => now(),
         ]);
 
         User::create([
-            'name' => 'เจ้าหน้าที่ 2',
-            'email' => 'agent2@test.com',
+            'name' => 'หัวหน้าทีมขาย',
+            'email' => 'leader@test.com',
             'password' => Hash::make('password'),
-            'role' => 'agent',
+            'role' => 'leader',
+            'phone' => '083-456-7890',
+            'position' => 'หัวหน้าทีม',
+            'department' => 'ฝ่ายขาย',
             'email_verified_at' => now(),
         ]);
 
         User::create([
-            'name' => 'หัวหน้าระบบ',
-            'email' => 'head@test.com',
+            'name' => 'ผู้จัดการฝ่าย',
+            'email' => 'manager@test.com',
             'password' => Hash::make('password'),
-            'role' => 'head',
+            'role' => 'manager',
+            'phone' => '084-567-8901',
+            'position' => 'ผู้จัดการฝ่าย',
+            'department' => 'ฝ่ายขาย',
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'name' => 'CEO',
+            'email' => 'ceo@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'ceo',
+            'phone' => '085-678-9012',
+            'position' => 'ประธานเจ้าหน้าที่บริหาร',
+            'department' => 'สำนักงานใหญ่',
             'email_verified_at' => now(),
         ]);
     }
