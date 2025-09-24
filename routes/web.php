@@ -135,7 +135,7 @@ Route::middleware('auth')->group(function () {
                                 ->get();
 
         // Top Agents (เจ้าหน้าที่ที่แก้ไขปัญหาได้มากที่สุด)
-        $topAgents = User::whereIn('role', ['owner', 'head', 'agent'])
+        $topAgents = User::whereIn('role', ['leader', 'manager', 'ceo'])
                         ->withCount(['assignedTickets as resolved_count' => function ($query) {
                             $query->whereHas('status', function ($q) {
                                 $q->whereIn('name', ['Resolved', 'Closed']);
