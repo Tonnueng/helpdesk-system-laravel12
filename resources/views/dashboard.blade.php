@@ -212,33 +212,51 @@
                     </div>
                 </div>
 
-                {{-- สถิติตามระดับความสำคัญ --}}
+                {{-- สถิติตามสถานะ --}}
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-exclamation-triangle mr-2 text-orange-500"></i>
-                        {{ __('ตามระดับความสำคัญ') }}
+                        <i class="fas fa-chart-bar mr-2 text-blue-500"></i>
+                        {{ __('สถิติตามสถานะ') }}
                     </h3>
                     <div class="space-y-3">
-                        @forelse($ticketsByPriority as $priority => $count)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-700">
-                                    {{ $priority }}
-                                </span>
-                                <span class="text-xs font-medium px-2.5 py-0.5 rounded-full
-                                    @if($priority === 'Critical') bg-red-100 text-red-800
-                                    @elseif($priority === 'High') bg-orange-100 text-orange-800
-                                    @elseif($priority === 'Medium') bg-yellow-100 text-yellow-800
-                                    @else bg-green-100 text-green-800
-                                    @endif">
-                                    {{ $count }}
-                                </span>
-                            </div>
-                        @empty
+                        @php
+                            $statusStats = $ticketsByStatus ?? [];
+                        @endphp
+                        
+                        @if(count($statusStats) > 0)
+                            @foreach($statusStats as $status => $count)
+                                @php
+                                    $statusColors = [
+                                        'New' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-plus-circle'],
+                                        'In Progress' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'icon' => 'fas fa-spinner'],
+                                        'Pending' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-600', 'icon' => 'fas fa-clock'],
+                                        'Resolved' => ['bg' => 'bg-green-100', 'text' => 'text-green-600', 'icon' => 'fas fa-check-circle'],
+                                        'Closed' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-600', 'icon' => 'fas fa-lock'],
+                                        'Rejected' => ['bg' => 'bg-red-100', 'text' => 'text-red-600', 'icon' => 'fas fa-times-circle'],
+                                    ];
+                                    $colors = $statusColors[$status] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-circle'];
+                                @endphp
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 {{ $colors['bg'] }} rounded-full flex items-center justify-center mr-3">
+                                            <i class="{{ $colors['icon'] }} text-sm {{ $colors['text'] }}"></i>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-700">{{ $status }}</span>
+                                            <p class="text-xs text-gray-500">สถานะปัญหา</p>
+                                        </div>
+                                    </div>
+                                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                        {{ $count }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        @else
                             <div class="text-center py-4 text-gray-500">
                                 <i class="fas fa-info-circle text-lg mb-2"></i>
-                                <p>ไม่มีข้อมูลระดับความสำคัญ</p>
+                                <p>ไม่มีข้อมูลสถานะ</p>
                             </div>
-                        @endforelse
+                        @endif
                     </div>
                 </div>
 
