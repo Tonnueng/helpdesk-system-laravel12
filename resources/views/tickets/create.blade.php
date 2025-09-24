@@ -1,5 +1,3 @@
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">

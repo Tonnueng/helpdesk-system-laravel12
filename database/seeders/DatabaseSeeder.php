@@ -19,7 +19,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             PrioritySeeder::class,
             StatusSeeder::class,
-            TestUserSeeder::class,
+            ComprehensiveUserSeeder::class,
+            LargeTicketSeeder::class,
         ]);
     }
 }

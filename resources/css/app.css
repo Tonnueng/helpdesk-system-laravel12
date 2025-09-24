@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import custom ticket create styles */
 @import './ticket-create.css';
 
 /* Import custom profile styles */
 @import './profile.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* เพิ่มสไตล์ CSS อื่นๆ ของคุณที่นี่ หากมี */

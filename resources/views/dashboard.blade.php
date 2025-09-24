@@ -43,17 +43,17 @@
                 </div>
             @endif
 
-            {{-- สถิติหลัก --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {{-- สถิติหลัก - มินิมอล --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {{-- ปัญหาทั้งหมด --}}
-                <div class="bg-gradient-to-r from-sky-200 to-blue-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-sky-100">
+                <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาทั้งหมด') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($totalTickets) }}</p>
+                            <p class="text-gray-600 text-sm font-medium">{{ __('ปัญหาทั้งหมด') }}</p>
+                            <p class="text-2xl font-bold mt-1 text-gray-900">{{ number_format($totalTickets) }}</p>
                         </div>
-                        <div class="bg-sky-100 bg-opacity-50 rounded-full p-3">
-                            <i class="fas fa-ticket-alt text-2xl text-sky-600"></i>
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-ticket-alt text-lg text-blue-600"></i>
                         </div>
                     </div>
                 </div>
@@ -64,14 +64,14 @@
                     if (isset($ticketsByStatus['New'])) $openTickets += $ticketsByStatus['New'];
                     if (isset($ticketsByStatus['In Progress'])) $openTickets += $ticketsByStatus['In Progress'];
                 @endphp
-                <div class="bg-gradient-to-r from-amber-200 to-orange-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-amber-100">
+                <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาที่ยังไม่แก้ไข') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($openTickets) }}</p>
+                            <p class="text-gray-600 text-sm font-medium">{{ __('ปัญหาที่ยังไม่แก้ไข') }}</p>
+                            <p class="text-2xl font-bold mt-1 text-gray-900">{{ number_format($openTickets) }}</p>
                         </div>
-                        <div class="bg-amber-100 bg-opacity-50 rounded-full p-3">
-                            <i class="fas fa-clock text-2xl text-amber-600"></i>
+                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-lg text-amber-600"></i>
                         </div>
                     </div>
                 </div>
@@ -82,92 +82,127 @@
                     if (isset($ticketsByStatus['Resolved'])) $closedTickets += $ticketsByStatus['Resolved'];
                     if (isset($ticketsByStatus['Closed'])) $closedTickets += $ticketsByStatus['Closed'];
                 @endphp
-                <div class="bg-gradient-to-r from-emerald-200 to-green-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-emerald-100">
+                <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาที่แก้ไขแล้ว') }}</p>
-                            <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($closedTickets) }}</p>
+                            <p class="text-gray-600 text-sm font-medium">{{ __('ปัญหาที่แก้ไขแล้ว') }}</p>
+                            <p class="text-2xl font-bold mt-1 text-gray-900">{{ number_format($closedTickets) }}</p>
                         </div>
-                        <div class="bg-emerald-100 bg-opacity-50 rounded-full p-3">
-                            <i class="fas fa-check-circle text-2xl text-emerald-600"></i>
+                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-lg text-green-600"></i>
                         </div>
                     </div>
                 </div>
 
                 {{-- ปัญหาที่มอบหมายให้ฉัน --}}
                 @if (Auth::user()->canManageTickets())
-                    <div class="bg-gradient-to-r from-violet-200 to-purple-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-violet-100">
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-slate-600 text-sm font-medium">{{ __('มอบหมายให้ฉัน') }}</p>
-                                <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($assignedTickets) }}</p>
+                                <p class="text-gray-600 text-sm font-medium">{{ __('มอบหมายให้ฉัน') }}</p>
+                                <p class="text-2xl font-bold mt-1 text-gray-900">{{ number_format($assignedTickets) }}</p>
                             </div>
-                            <div class="bg-violet-100 bg-opacity-50 rounded-full p-3">
-                                <i class="fas fa-user-tie text-2xl text-violet-600"></i>
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-user-tie text-lg text-purple-600"></i>
                             </div>
                         </div>
                     </div>
                 @else
                     {{-- สำหรับผู้ใช้ทั่วไป --}}
-                    <div class="bg-gradient-to-r from-indigo-200 to-blue-300 text-slate-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-indigo-100">
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-slate-600 text-sm font-medium">{{ __('ปัญหาของฉัน') }}</p>
-                                <p class="text-3xl font-bold mt-1 text-slate-800">{{ number_format($totalTickets) }}</p>
+                                <p class="text-gray-600 text-sm font-medium">{{ __('ปัญหาของฉัน') }}</p>
+                                <p class="text-2xl font-bold mt-1 text-gray-900">{{ number_format($totalTickets) }}</p>
                             </div>
-                            <div class="bg-indigo-100 bg-opacity-50 rounded-full p-3">
-                                <i class="fas fa-user text-2xl text-indigo-600"></i>
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-user text-lg text-indigo-600"></i>
                             </div>
                         </div>
                     </div>
                 @endif
             </div>
 
-            {{-- กราฟและแผนภูมิ --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {{-- กราฟและแผนภูมิ - มินิมอล --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {{-- กราฟสถิติรายเดือน --}}
-                <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-800">
                             <i class="fas fa-chart-bar mr-2 text-blue-500"></i>
                             {{ __('สถิติรายเดือน') }}
                         </h3>
                     </div>
-                    <div style="height: 300px;">
+                    <div style="height: 250px;">
                         <canvas id="monthlyChart"></canvas>
                     </div>
                 </div>
 
                 {{-- กราฟสถิติรายวัน (7 วันล่าสุด) --}}
-                <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-800">
                             <i class="fas fa-chart-line mr-2 text-green-500"></i>
                             {{ __('สถิติรายวัน (7 วันล่าสุด)') }}
                         </h3>
                     </div>
-                    <div style="height: 300px;">
+                    <div style="height: 250px;">
                         <canvas id="recentChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            {{-- สถิติรายละเอียด --}}
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                {{-- สถิติตามประเภท --}}
-                <div class="bg-white p-6 rounded-xl shadow-lg">
+            {{-- สถิติรายละเอียด - มินิมอล --}}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {{-- สถิติตามประเภท - เฉพาะหมวดหมู่หลัก --}}
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">
                         <i class="fas fa-tags mr-2 text-blue-500"></i>
                         {{ __('ตามประเภท') }}
                     </h3>
-                    <div class="space-y-3">
-                        @forelse($ticketsByCategory as $category => $count)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-700">{{ $category }}</span>
-                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                    {{ $count }}
-                                </span>
-                            </div>
+                    <div class="space-y-2">
+                        @php
+                            $mainCategories = \App\Models\Category::whereNull('parent_category')->get();
+                        @endphp
+                        @forelse($mainCategories as $category)
+                            @php
+                                $subcategories = \App\Models\Category::where('parent_category', $category->name)->get();
+                                $ticketCount = \App\Models\Ticket::whereIn('category_id', $subcategories->pluck('id'))->count();
+                            @endphp
+                            @if($ticketCount > 0)
+                                <div class="relative group">
+                                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors duration-200 cursor-pointer">
+                                        <span class="text-sm font-medium text-gray-700">{{ $category->name }}</span>
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">
+                                            {{ $ticketCount }}
+                                        </span>
+                                    </div>
+                                    
+                                    {{-- Hover Tooltip - มินิมอล --}}
+                                    <div class="absolute left-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                        <div class="p-3">
+                                            <div class="text-xs font-semibold text-gray-600 mb-2 border-b border-gray-100 pb-1">
+                                                หมวดหมู่ย่อย
+                                            </div>
+                                            <div class="space-y-1">
+                                                @foreach($subcategories as $subcategory)
+                                                    @php
+                                                        $subTicketCount = \App\Models\Ticket::where('category_id', $subcategory->id)->count();
+                                                    @endphp
+                                                    @if($subTicketCount > 0)
+                                                        <div class="flex items-center justify-between text-xs">
+                                                            <span class="text-gray-700">{{ $subcategory->name }}</span>
+                                                            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                                                {{ $subTicketCount }}
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @empty
                             <div class="text-center py-4 text-gray-500">
                                 <i class="fas fa-info-circle text-lg mb-2"></i>

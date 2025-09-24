@@ -100,7 +100,9 @@ class TicketController extends Controller
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
-        $tickets = $query->paginate(10)->withQueryString();
+        // เพิ่ม pagination - 20 ปัญหาต่อหน้า
+        $perPage = $request->get('per_page', 20);
+        $tickets = $query->paginate($perPage)->withQueryString();
 
         // โหลดข้อมูลสำหรับ dropdown filters
         $categories = Category::all();
@@ -108,19 +110,24 @@ class TicketController extends Controller
         $statuses = Status::all();
         $agents = User::whereIn('role', ['leader', 'manager', 'ceo'])->get();
 
+        // สถิติสำหรับ Summary Cards (ใช้ข้อมูลทั้งหมด ไม่ใช่แค่หน้าเดียว)
+        $totalTickets = Ticket::count();
+        $resolvedTickets = Ticket::whereHas('status', function($q) { $q->where('name', 'Resolved'); })->count();
+        $inProgressTickets = Ticket::whereHas('status', function($q) { $q->where('name', 'In Progress'); })->count();
+        $newTickets = Ticket::whereHas('status', function($q) { $q->where('name', 'New'); })->count();
+
 
         // กำหนดสถานะที่จะแสดงใน Kanban Board
-        $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
-        
-        // ถ้ามีการเลือกสถานะในตัวกรอง ให้เพิ่มสถานะนั้นเข้าไป
         if ($request->filled('status')) {
+            // ถ้ามีการเลือกสถานะ ให้แสดงเฉพาะสถานะนั้น
             $selectedStatus = Status::find($request->status);
-            if ($selectedStatus && in_array($selectedStatus->name, ['Closed', 'Rejected'])) {
-                $kanbanStatuses[] = $selectedStatus->name;
-            }
+            $kanbanStatuses = $selectedStatus ? [$selectedStatus->name] : ['New', 'In Progress', 'Pending', 'Resolved'];
+        } else {
+            // ถ้าไม่มีการเลือกสถานะ ให้แสดงสถานะหลักทั้งหมด
+            $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
         }
 
-        return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents', 'kanbanStatuses'));
+        return view('tickets.index', compact('tickets', 'categories', 'priorities', 'statuses', 'agents', 'kanbanStatuses', 'totalTickets', 'resolvedTickets', 'inProgressTickets', 'newTickets'));
     }
 
     public function ajaxIndex(Request $request)
@@ -211,14 +218,13 @@ class TicketController extends Controller
         $groupedTickets = $tickets->groupBy('status.name');
 
         // กำหนดสถานะที่จะแสดงใน Kanban Board
-        $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
-        
-        // ถ้ามีการเลือกสถานะในตัวกรอง ให้เพิ่มสถานะนั้นเข้าไป
         if ($request->filled('status')) {
+            // ถ้ามีการเลือกสถานะ ให้แสดงเฉพาะสถานะนั้น
             $selectedStatus = Status::find($request->status);
-            if ($selectedStatus && in_array($selectedStatus->name, ['Closed', 'Rejected'])) {
-                $kanbanStatuses[] = $selectedStatus->name;
-            }
+            $kanbanStatuses = $selectedStatus ? [$selectedStatus->name] : ['New', 'In Progress', 'Pending', 'Resolved'];
+        } else {
+            // ถ้าไม่มีการเลือกสถานะ ให้แสดงสถานะหลักทั้งหมด
+            $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
         }
 
         return response()->json([

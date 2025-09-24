@@ -44,12 +44,6 @@ Route::middleware('auth')->group(function () {
             $ticketsByStatus[$status->name] = Ticket::where('status_id', $status->id)->count();
         }
 
-        // สถิติตามประเภท
-        $categories = Category::all();
-        $ticketsByCategory = [];
-        foreach ($categories as $category) {
-            $ticketsByCategory[$category->name] = Ticket::where('category_id', $category->id)->count();
-        }
 
         // สถิติตามระดับความสำคัญ
         $priorities = Priority::all();
@@ -133,8 +127,9 @@ Route::middleware('auth')->group(function () {
             ];
         }
 
-        // Top Categories (ประเภทที่แจ้งบ่อยที่สุด)
-        $topCategories = Category::withCount('tickets')
+        // Top Categories (ประเภทที่แจ้งบ่อยที่สุด) - เฉพาะหมวดหมู่หลัก
+        $topCategories = Category::whereNull('parent_category')
+                                ->withCount('tickets')
                                 ->orderBy('tickets_count', 'desc')
                                 ->take(5)
                                 ->get();
@@ -150,10 +145,10 @@ Route::middleware('auth')->group(function () {
                         ->take(5)
                         ->get();
 
-        return view('dashboard', compact(
+
+                        return view('dashboard', compact(
             'totalTickets',
             'ticketsByStatus',
-            'ticketsByCategory',
             'ticketsByPriority',
             'monthlyStats',
             'avgResolutionTime',

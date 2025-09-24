@@ -1,6 +1,20 @@
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
 <x-app-layout>
+    <x-slot name="head">
+        <style>
+            .line-clamp-2 {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .line-clamp-3 {
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+        </style>
+    </x-slot>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
@@ -150,6 +164,20 @@
                                 @endforeach
                             </select>
                         </div>
+                        @if (Auth::user()->isManager() || Auth::user()->isCEO())
+                        <div>
+                            <select name="assigned_to" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">ผู้รับผิดชอบ</option>
+                                <option value="me" {{ request('assigned_to') == 'me' ? 'selected' : '' }}>มอบหมายให้ฉัน</option>
+                                <option value="unassigned" {{ request('assigned_to') == 'unassigned' ? 'selected' : '' }}>ยังไม่ได้มอบหมาย</option>
+                                @foreach ($agents as $agent)
+                                    <option value="{{ $agent->id }}" {{ request('assigned_to') == $agent->id ? 'selected' : '' }}>
+                                        {{ $agent->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
                         <div>
                             <select name="sort_by" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>วันที่แจ้ง</option>
@@ -161,7 +189,257 @@
                 </form>
             </div>
 
-            {{-- Kanban Taskboard --}}
+            {{-- Summary Cards - มินิมอล โทนพาสเทล --}}
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+                {{-- ปัญหาทั้งหมด --}}
+                <a href="{{ route('tickets.index') }}" class="group block">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-2xl border border-blue-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-200/60 rounded-full flex items-center justify-center group-hover:bg-blue-300/80 transition-colors duration-300">
+                                    <i class="fas fa-ticket-alt text-lg text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-700 group-hover:text-blue-800 transition-colors">ปัญหาทั้งหมด</p>
+                                    <p class="text-2xl font-bold text-blue-800 group-hover:text-blue-900 transition-colors">{{ $totalTickets }}</p>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-arrow-right text-blue-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                {{-- คิวรอ --}}
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'New')->first()->id]) }}" class="group block">
+                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-2xl border border-indigo-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-indigo-200/60 rounded-full flex items-center justify-center group-hover:bg-indigo-300/80 transition-colors duration-300">
+                                    <i class="fas fa-inbox text-lg text-indigo-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-indigo-700 group-hover:text-indigo-800 transition-colors">คิวรอ</p>
+                                    <p class="text-2xl font-bold text-indigo-800 group-hover:text-indigo-900 transition-colors">{{ \App\Models\Ticket::whereHas('status', function($q) { $q->where('name', 'New'); })->count() }}</p>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-arrow-right text-indigo-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                {{-- เสร็จสิ้น --}}
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Resolved')->first()->id]) }}" class="group block">
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-2xl border border-green-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-200/60 rounded-full flex items-center justify-center group-hover:bg-green-300/80 transition-colors duration-300">
+                                    <i class="fas fa-check-circle text-lg text-green-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-green-700 group-hover:text-green-800 transition-colors">เสร็จสิ้น</p>
+                                    <p class="text-2xl font-bold text-green-800 group-hover:text-green-900 transition-colors">{{ $resolvedTickets }}</p>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-arrow-right text-green-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                {{-- กำลังดำเนินการ --}}
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'In Progress')->first()->id]) }}" class="group block">
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-2xl border border-amber-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-amber-200/60 rounded-full flex items-center justify-center group-hover:bg-amber-300/80 transition-colors duration-300">
+                                    <i class="fas fa-clock text-lg text-amber-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-amber-700 group-hover:text-amber-800 transition-colors">กำลังดำเนินการ</p>
+                                    <p class="text-2xl font-bold text-amber-800 group-hover:text-amber-900 transition-colors">{{ $inProgressTickets }}</p>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-arrow-right text-amber-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                {{-- รอตรวจสอบ --}}
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Pending')->first()->id]) }}" class="group block">
+                    <div class="bg-gradient-to-br from-rose-50 to-rose-100 p-4 rounded-2xl border border-rose-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-rose-200/60 rounded-full flex items-center justify-center group-hover:bg-rose-300/80 transition-colors duration-300">
+                                    <i class="fas fa-exclamation-circle text-lg text-rose-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-rose-700 group-hover:text-rose-800 transition-colors">รอตรวจสอบ</p>
+                                    <p class="text-2xl font-bold text-rose-800 group-hover:text-rose-900 transition-colors">{{ $newTickets }}</p>
+                                </div>
+                            </div>
+                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fas fa-arrow-right text-rose-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Pagination Controls - มินิมอล โทนพาสเทล --}}
+            <div class="bg-gradient-to-r from-slate-50 to-slate-100 p-4 rounded-2xl border border-slate-200/50 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-6">
+                        <span class="text-sm text-slate-600 font-medium">
+                            แสดง {{ $tickets->firstItem() ?? 0 }} ถึง {{ $tickets->lastItem() ?? 0 }} 
+                            จาก {{ $tickets->total() }} ปัญหา
+                        </span>
+                        
+                        <div class="flex items-center space-x-3">
+                            <label for="per_page" class="text-sm text-slate-600 font-medium">แสดงต่อหน้า:</label>
+                            <select name="per_page" id="per_page" class="text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" onchange="this.form.submit()">
+                                <option value="10" {{ request('per_page') == '10' ? 'selected' : '' }}>10</option>
+                                <option value="20" {{ request('per_page') == '20' || !request('per_page') ? 'selected' : '' }}>20</option>
+                                <option value="50" {{ request('per_page') == '50' ? 'selected' : '' }}>50</option>
+                                <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-1">
+                        @if ($tickets->hasPages())
+                            {{-- ปุ่มก่อนหน้า --}}
+                            @if ($tickets->onFirstPage())
+                                <span class="px-4 py-2 text-sm text-slate-400 bg-slate-100 rounded-lg cursor-not-allowed">
+                                    <i class="fas fa-chevron-left mr-1"></i>ก่อนหน้า
+                                </span>
+                            @else
+                                <a href="{{ $tickets->previousPageUrl() }}" class="px-4 py-2 text-sm text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all duration-200">
+                                    <i class="fas fa-chevron-left mr-1"></i>ก่อนหน้า
+                                </a>
+                            @endif
+                            
+                            {{-- หมายเลขหน้า --}}
+                            @foreach ($tickets->getUrlRange(1, $tickets->lastPage()) as $page => $url)
+                                @if ($page == $tickets->currentPage())
+                                    <span class="px-4 py-2 text-sm text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-sm">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $url }}" class="px-4 py-2 text-sm text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all duration-200">{{ $page }}</a>
+                                @endif
+                            @endforeach
+                            
+                            {{-- ปุ่มถัดไป --}}
+                            @if ($tickets->hasMorePages())
+                                <a href="{{ $tickets->nextPageUrl() }}" class="px-4 py-2 text-sm text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all duration-200">
+                                    ถัดไป<i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            @else
+                                <span class="px-4 py-2 text-sm text-slate-400 bg-slate-100 rounded-lg cursor-not-allowed">
+                                    ถัดไป<i class="fas fa-chevron-right ml-1"></i>
+                                </span>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Filtered Status View - เมื่อคลิกการ์ดสถานะ --}}
+            @if(request('status'))
+                {{-- Header สำหรับสถานะที่เลือก - มินิมอล --}}
+                @php
+                    $selectedStatus = \App\Models\Status::find(request('status'));
+                    $statusInfo = [
+                        'New' => ['title' => 'คิวรอ', 'color' => 'indigo', 'icon' => 'fas fa-inbox'],
+                        'In Progress' => ['title' => 'กำลังดำเนินการ', 'color' => 'amber', 'icon' => 'fas fa-clock'],
+                        'Pending' => ['title' => 'รอตรวจสอบ', 'color' => 'rose', 'icon' => 'fas fa-exclamation-circle'],
+                        'Resolved' => ['title' => 'เสร็จสิ้น', 'color' => 'green', 'icon' => 'fas fa-check-circle'],
+                    ];
+                    $currentStatus = $statusInfo[$selectedStatus->name] ?? ['title' => $selectedStatus->name, 'color' => 'gray', 'icon' => 'fas fa-circle'];
+                @endphp
+                
+                <div class="bg-white border-b border-gray-200 py-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-{{ $currentStatus['color'] }}-100 flex items-center justify-center">
+                                <i class="{{ $currentStatus['icon'] }} text-sm text-{{ $currentStatus['color'] }}-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-900">{{ $currentStatus['title'] }}</h2>
+                                <p class="text-sm text-gray-500">{{ $tickets->total() }} ปัญหา</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('tickets.index') }}" class="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                            <i class="fas fa-arrow-left mr-1"></i>กลับไปดูทั้งหมด
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Ticket List View - มินิมอล --}}
+                <div class="space-y-3">
+                    @forelse($tickets as $ticket)
+                        <div class="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        {{-- Ticket Header --}}
+                                        <div class="flex items-center space-x-2 mb-2">
+                                            <span class="text-xs font-medium text-gray-400">#{{ $ticket->id }}</span>
+                                            @php
+                                                $priorityColors = [
+                                                    'Low' => 'bg-gray-100 text-gray-600',
+                                                    'Medium' => 'bg-blue-100 text-blue-600',
+                                                    'High' => 'bg-orange-100 text-orange-600',
+                                                    'Urgent' => 'bg-red-100 text-red-600',
+                                                ];
+                                                $priorityColor = $priorityColors[$ticket->priority->name] ?? 'bg-gray-100 text-gray-600';
+                                            @endphp
+                                            <span class="px-2 py-0.5 text-xs font-medium rounded {{ $priorityColor }}">
+                                                {{ $ticket->priority->name }}
+                                            </span>
+                                        </div>
+                                        
+                                        {{-- Ticket Title --}}
+                                        <h3 class="text-base font-medium text-gray-900 mb-1 line-clamp-2">
+                                            {{ $ticket->title }}
+                                        </h3>
+                                        
+                                        {{-- Ticket Meta --}}
+                                        <div class="flex items-center justify-between text-sm text-gray-500">
+                                            <div class="flex items-center space-x-3">
+                                                <span>{{ $ticket->user->name }}</span>
+                                                @if($ticket->assignedTo)
+                                                    <span>→ {{ $ticket->assignedTo->name }}</span>
+                                                @endif
+                                                <span>{{ $ticket->created_at->format('d/m/Y') }}</span>
+                                            </div>
+                                            
+                                            {{-- Action Button --}}
+                                            <a href="{{ route('tickets.show', $ticket) }}" class="text-{{ $currentStatus['color'] }}-600 hover:text-{{ $currentStatus['color'] }}-700 transition-colors duration-200 text-sm font-medium">
+                                                ดูรายละเอียด
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="bg-white p-8 rounded-lg border border-gray-200 text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-3">
+                                <i class="{{ $currentStatus['icon'] }} text-lg text-gray-400"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-800 mb-1">ไม่มีปัญหาในสถานะนี้</h3>
+                            <p class="text-gray-500 text-sm">ยังไม่มีการแจ้งปัญหาในสถานะ "{{ $currentStatus['title'] }}"</p>
+                        </div>
+                    @endforelse
+                </div>
+            @else
+                {{-- Kanban Taskboard - เมื่อไม่มีการกรอง --}}
             @if ($tickets->isEmpty())
                 <div class="bg-white p-12 rounded-xl shadow-lg text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
@@ -201,13 +479,18 @@
                         refreshTickets() {
                             // สร้าง URL พร้อม query parameters
                             const url = new URL('{{ route("tickets.ajax") }}', window.location.origin);
-                            const form = this.$el;
+                            
+                            // หา form element ที่ใกล้ที่สุด
+                            const form = this.$el.closest('form') || document.querySelector('form');
+                            
+                            if (form) {
                             const formData = new FormData(form);
                             
                             // เพิ่ม query parameters
                             for (let [key, value] of formData.entries()) {
                                 if (value) {
                                     url.searchParams.append(key, value);
+                                    }
                                 }
                             }
                             
@@ -257,16 +540,8 @@
                             'Rejected' => ['title' => 'ปฏิเสธ', 'color' => 'red', 'icon' => 'fas fa-times']
                         ];
                         
-                        // กำหนดสถานะที่จะแสดงใน Kanban Board
-                        $kanbanStatuses = ['New', 'In Progress', 'Pending', 'Resolved'];
-                        
-                        // ถ้ามีการเลือกสถานะในตัวกรอง ให้เพิ่มสถานะนั้นเข้าไป
-                        if (request('status')) {
-                            $selectedStatus = \App\Models\Status::find(request('status'));
-                            if ($selectedStatus && in_array($selectedStatus->name, ['Closed', 'Rejected'])) {
-                                $kanbanStatuses[] = $selectedStatus->name;
-                            }
-                        }
+                        // ใช้ $kanbanStatuses จาก Controller แทนการกำหนดใหม่
+                        // $kanbanStatuses จะถูกส่งมาจาก TicketController
                     @endphp
                     
                     @foreach($kanbanStatuses as $statusName)
@@ -388,6 +663,7 @@
             </div>
                     @endforeach
                 </div>
+            @endif
             @endif
         </div>
     </div>

@@ -170,31 +170,37 @@ function addAutoSave() {
     const form = document.querySelector('form[x-data]');
     if (!form) return;
     
-    const formData = form.querySelector('[x-data]').__x.$data.formData;
+    // Wait for Alpine.js to initialize
+    setTimeout(() => {
+        const alpineElement = form.querySelector('[x-data]');
+        if (!alpineElement || !alpineElement.__x) return;
+        
+        const formData = alpineElement.__x.$data.formData;
     
-    // Save data on every change
-    const saveData = () => {
-        localStorage.setItem('ticketFormData', JSON.stringify(formData));
-    };
-    
-    // Load saved data on page load
-    const savedData = localStorage.getItem('ticketFormData');
-    if (savedData) {
-        try {
-            const parsedData = JSON.parse(savedData);
-            Object.assign(formData, parsedData);
-        } catch (e) {
-            console.log('Could not parse saved form data');
+        // Save data on every change
+        const saveData = () => {
+            localStorage.setItem('ticketFormData', JSON.stringify(formData));
+        };
+        
+        // Load saved data on page load
+        const savedData = localStorage.getItem('ticketFormData');
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                Object.assign(formData, parsedData);
+            } catch (e) {
+                console.log('Could not parse saved form data');
+            }
         }
-    }
-    
-    // Save data periodically
-    setInterval(saveData, 5000);
-    
-    // Clear saved data on successful submit
-    form.addEventListener('submit', () => {
-        localStorage.removeItem('ticketFormData');
-    });
+        
+        // Save data periodically
+        setInterval(saveData, 5000);
+        
+        // Clear saved data on successful submit
+        form.addEventListener('submit', () => {
+            localStorage.removeItem('ticketFormData');
+        });
+    }, 100); // Wait 100ms for Alpine.js to initialize
 }
 
 function addKeyboardShortcuts() {
@@ -302,7 +308,7 @@ function addAnimationTriggers() {
 function getCurrentStep() {
     // Get current step from Alpine.js data
     const form = document.querySelector('form[x-data]');
-    if (form && form.__x) {
+    if (form && form.__x && form.__x.$data) {
         return form.__x.$data.currentStep;
     }
     return 1;
