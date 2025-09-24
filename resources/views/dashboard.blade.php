@@ -317,7 +317,7 @@
                                         'Low' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-circle'],
                                         'Medium' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'icon' => 'fas fa-circle'],
                                         'High' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-600', 'icon' => 'fas fa-circle'],
-                                        'Urgent' => ['bg' => 'bg-red-100', 'text' => 'text-red-600', 'icon' => 'fas fa-exclamation-triangle'],
+                                        'Critical' => ['bg' => 'bg-red-100', 'text' => 'text-red-600', 'icon' => 'fas fa-exclamation-triangle'],
                                     ];
                                     $colors = $priorityColors[$priority] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-circle'];
                                 @endphp
