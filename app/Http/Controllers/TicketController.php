@@ -74,9 +74,12 @@ class TicketController extends Controller
             // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
             $query->where('user_id', Auth::id());
         } elseif (Auth::user()->isLeader()) {
-            // หัวหน้าทีม: ดูเฉพาะปัญหาของฝ่ายตัวเอง (ตาม department)
-            $query->whereHas('user', function ($userQuery) {
-                $userQuery->where('department', Auth::user()->department);
+            // หัวหน้าทีม: ดูปัญหาของฝ่ายตัวเอง + ปัญหาที่ถูกมอบหมายให้
+            $query->where(function ($q) {
+                $q->where('assigned_to_user_id', Auth::id()) // ปัญหาที่ถูกมอบหมายให้
+                  ->orWhereHas('user', function ($userQuery) {
+                      $userQuery->where('department', Auth::user()->department);
+                  }); // ปัญหาของฝ่ายตัวเอง
             });
         } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
             // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
@@ -183,9 +186,12 @@ class TicketController extends Controller
             // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
             $query->where('user_id', Auth::id());
         } elseif (Auth::user()->isLeader()) {
-            // หัวหน้าทีม: ดูเฉพาะปัญหาของฝ่ายตัวเอง (ตาม department)
-            $query->whereHas('user', function ($userQuery) {
-                $userQuery->where('department', Auth::user()->department);
+            // หัวหน้าทีม: ดูปัญหาของฝ่ายตัวเอง + ปัญหาที่ถูกมอบหมายให้
+            $query->where(function ($q) {
+                $q->where('assigned_to_user_id', Auth::id()) // ปัญหาที่ถูกมอบหมายให้
+                  ->orWhereHas('user', function ($userQuery) {
+                      $userQuery->where('department', Auth::user()->department);
+                  }); // ปัญหาของฝ่ายตัวเอง
             });
         } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
             // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
@@ -333,8 +339,9 @@ class TicketController extends Controller
             // พนักงาน: ดูเฉพาะปัญหาที่ตนเองแจ้ง
             $canView = ($ticket->user_id === Auth::id());
         } elseif (Auth::user()->isLeader()) {
-            // หัวหน้าทีม: ดูเฉพาะปัญหาของฝ่ายตัวเอง (ตาม department)
-            $canView = ($ticket->user->department === Auth::user()->department);
+            // หัวหน้าทีม: ดูปัญหาของฝ่ายตัวเอง + ปัญหาที่ถูกมอบหมายให้
+            $canView = ($ticket->assigned_to_user_id === Auth::id()) || 
+                      ($ticket->user->department === Auth::user()->department);
         } elseif (Auth::user()->isManager() || Auth::user()->isCEO()) {
             // ผู้จัดการ/CEO: ดูปัญหาทั้งหมด
             $canView = true;
