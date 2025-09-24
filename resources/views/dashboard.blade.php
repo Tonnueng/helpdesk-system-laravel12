@@ -303,7 +303,7 @@
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">
                         <i class="fas fa-medal mr-2 text-green-500"></i>
-                        {{ __('เจ้าหน้าที่ที่แก้ไขปัญหาได้มากที่สุด') }}
+                        {{ __('อันดับเจ้าหน้าที่แก้ไขปัญหาได้มากที่สุด') }}
                     </h3>
                     <div class="space-y-3">
                         @forelse($topAgents as $agent)
