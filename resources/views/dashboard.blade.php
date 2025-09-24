@@ -299,34 +299,49 @@
                     </div>
                 </div>
 
-                {{-- Top Agents --}}
+                {{-- สถิติตามระดับความสำคัญ --}}
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-medal mr-2 text-green-500"></i>
-                        {{ __('อันดับเจ้าหน้าที่แก้ไขปัญหาได้มากที่สุด') }}
+                        <i class="fas fa-chart-pie mr-2 text-purple-500"></i>
+                        {{ __('สถิติตามระดับความสำคัญ') }}
                     </h3>
                     <div class="space-y-3">
-                        @forelse($topAgents as $agent)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <span class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                                        {{ $loop->iteration }}
-                                    </span>
-                                    <div>
-                                        <span class="text-sm font-medium text-gray-700">{{ $agent->name }}</span>
-                                        <p class="text-xs text-gray-500">{{ ucfirst($agent->role) }}</p>
+                        @php
+                            $priorityStats = $ticketsByPriority ?? [];
+                        @endphp
+                        
+                        @if(count($priorityStats) > 0)
+                            @foreach($priorityStats as $priority => $count)
+                                @php
+                                    $priorityColors = [
+                                        'Low' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-circle'],
+                                        'Medium' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'icon' => 'fas fa-circle'],
+                                        'High' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-600', 'icon' => 'fas fa-circle'],
+                                        'Urgent' => ['bg' => 'bg-red-100', 'text' => 'text-red-600', 'icon' => 'fas fa-exclamation-triangle'],
+                                    ];
+                                    $colors = $priorityColors[$priority] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'icon' => 'fas fa-circle'];
+                                @endphp
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 {{ $colors['bg'] }} rounded-full flex items-center justify-center mr-3">
+                                            <i class="{{ $colors['icon'] }} text-sm {{ $colors['text'] }}"></i>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-700">{{ $priority }}</span>
+                                            <p class="text-xs text-gray-500">ระดับความสำคัญ</p>
+                                        </div>
                                     </div>
+                                    <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                        {{ $count }}
+                                    </span>
                                 </div>
-                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                    {{ $agent->resolved_count }}
-                                </span>
-                            </div>
-                        @empty
+                            @endforeach
+                        @else
                             <div class="text-center py-4 text-gray-500">
                                 <i class="fas fa-info-circle text-lg mb-2"></i>
-                                <p>ไม่มีข้อมูลเจ้าหน้าที่</p>
+                                <p>ไม่มีข้อมูลระดับความสำคัญ</p>
                             </div>
-                        @endforelse
+                        @endif
                     </div>
                 </div>
             </div>

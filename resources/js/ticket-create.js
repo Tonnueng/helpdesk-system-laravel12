@@ -207,7 +207,8 @@ function addKeyboardShortcuts() {
     // Add keyboard shortcuts for navigation
     document.addEventListener('keydown', function(e) {
         // Only activate shortcuts when form is focused
-        if (!document.querySelector('form[x-data]').contains(document.activeElement)) {
+        const form = document.querySelector('form[x-data]');
+        if (!form || !form.contains(document.activeElement)) {
             return;
         }
         
