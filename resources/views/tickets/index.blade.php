@@ -192,7 +192,7 @@
             {{-- Summary Cards - มินิมอล โทนพาสเทล --}}
             <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
                 {{-- ปัญหาทั้งหมด --}}
-                <a href="{{ route('tickets.index') }}" class="group block">
+                <a href="{{ route('tickets.index') }}" class="group block" data-status-count="total">
                     <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-2xl border border-blue-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -212,7 +212,7 @@
                 </a>
                 
                 {{-- คิวรอ --}}
-                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'New')->first()->id]) }}" class="group block">
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'New')->first()->id]) }}" class="group block" data-status-count="New">
                     <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-2xl border border-indigo-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -232,7 +232,7 @@
                 </a>
                 
                 {{-- เสร็จสิ้น --}}
-                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Resolved')->first()->id]) }}" class="group block">
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Resolved')->first()->id]) }}" class="group block" data-status-count="Resolved">
                     <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-2xl border border-green-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -252,7 +252,7 @@
                 </a>
                 
                 {{-- กำลังดำเนินการ --}}
-                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'In Progress')->first()->id]) }}" class="group block">
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'In Progress')->first()->id]) }}" class="group block" data-status-count="In Progress">
                     <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-2xl border border-amber-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -272,7 +272,7 @@
                 </a>
                 
                 {{-- รอตรวจสอบ --}}
-                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Pending')->first()->id]) }}" class="group block">
+                <a href="{{ route('tickets.index', ['status' => \App\Models\Status::where('name', 'Pending')->first()->id]) }}" class="group block" data-status-count="Pending">
                     <div class="bg-gradient-to-br from-rose-50 to-rose-100 p-4 rounded-2xl border border-rose-200/50 hover:shadow-lg hover:scale-105 transition-all duration-300 ease-out">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -440,6 +440,30 @@
                 </div>
             @else
                 {{-- Kanban Taskboard - เมื่อไม่มีการกรอง --}}
+                
+                {{-- Drag & Drop Information --}}
+                @if(Auth::user()->isEmployee())
+                    <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 text-lg mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-semibold text-blue-800">ข้อมูลการใช้งาน Drag & Drop</h4>
+                                <p class="text-sm text-blue-600 mt-1">เฉพาะ Manager, CEO และ Leader เท่านั้นที่สามารถใช้ฟีเจอร์ Drag & Drop ได้</p>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(Auth::user()->isLeader())
+                    <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-hand-paper text-yellow-500 text-lg mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-semibold text-yellow-800">สิทธิ์การใช้งาน Drag & Drop</h4>
+                                <p class="text-sm text-yellow-600 mt-1">คุณสามารถลากปัญหาได้เฉพาะปัญหาที่ถูกมอบหมายให้คุณเท่านั้น</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                
             @if ($tickets->isEmpty())
                 <div class="bg-white p-12 rounded-xl shadow-lg text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
@@ -473,9 +497,11 @@
                         @endphp
                         
                         <div class="bg-gray-50 rounded-xl p-4 min-h-[600px] transition-all duration-200"
+                             @if(Auth::user()->isManager() || Auth::user()->isCEO() || Auth::user()->isLeader())
                              @dragover.prevent="dragOver('{{ $statusName }}')"
                              @dragleave="dragLeave()"
                              @drop.prevent="drop('{{ $statusName }}')"
+                             @endif
                              :class="{ 
                                  'bg-{{ $column['color'] }}-50 border-2 border-{{ $column['color'] }}-300': dragOverColumn === '{{ $statusName }}',
                                  'opacity-50': isUpdating
@@ -497,11 +523,13 @@
                                 @if($ticketsInStatus->count() > 0)
                                     @foreach($ticketsInStatus as $ticket)
                                         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                                             @if(Auth::user()->isManager() || Auth::user()->isCEO() || (Auth::user()->isLeader() && $ticket->assigned_to_user_id == Auth::id()))
                                              draggable="true"
                                              @dragstart="startDrag(@js($ticket))"
                                              @dragend="draggedTicket = null"
                                              :class="{ 'opacity-50 scale-95': draggedTicket && draggedTicket.id === {{ $ticket->id }} }"
-                                             onclick="if (!draggedTicket) window.location.href='{{ route('tickets.show', $ticket) }}'">
+                                             @endif
+                                             @click="if (!draggedTicket) window.location.href='{{ route('tickets.show', $ticket) }}'">
                                             
                                             {{-- Ticket Header --}}
                                             <div class="flex items-start justify-between mb-3">
@@ -670,18 +698,60 @@
                 },
                 
                 async drop(column) {
-                    if (this.draggedTicket && this.dragOverColumn) {
+                    // Store draggedTicket in a local variable before it gets reset by dragend
+                    const ticketToUpdate = this.draggedTicket;
+                    
+                    if (ticketToUpdate && this.dragOverColumn) {
                         try {
                             this.isUpdating = true;
-                            
-                            // Use GET method to avoid CSRF issues
-                            const url = `/tickets/${this.draggedTicket.id}/status/${column}`;
                             
                             // Show loading notification
                             this.showNotification('กำลังอัปเดตสถานะ...', 'info');
                             
-                            // Redirect to the URL
-                            window.location.href = url;
+                            console.log('Updating ticket:', ticketToUpdate.id, 'to status:', column);
+                            
+                            // Get CSRF token
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                            if (!csrfToken) {
+                                throw new Error('CSRF token not found');
+                            }
+                            
+                            // Use AJAX to update status without page refresh
+                            const response = await fetch(`/tickets/${ticketToUpdate.id}/status`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    status_name: column
+                                })
+                            });
+
+                            console.log('Response status:', response.status);
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                console.error('Response error:', errorText);
+                                throw new Error(`HTTP ${response.status}: ${errorText}`);
+                            }
+
+                            const data = await response.json();
+                            console.log('Response data:', data);
+
+                            if (data.success) {
+                                // Show success notification
+                                this.showNotification('สถานะอัปเดตเรียบร้อยแล้ว', 'success');
+                                
+                                // Reload page to show updated data
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                throw new Error(data.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+                            }
                         } catch (error) {
                             console.error('Error updating ticket status:', error);
                             this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');

@@ -549,9 +549,15 @@ class TicketController extends Controller
     public function updateStatus(Request $request, Ticket $ticket)
     {
         try {
-            // ตรวจสอบสิทธิ์การแก้ไข
-            if (!Auth::user()->canManageTickets() && Auth::id() !== $ticket->user_id) {
-                return response()->json(['error' => 'Unauthorized'], 403);
+            // ตรวจสอบสิทธิ์การแก้ไข - เฉพาะ Manager, CEO และ Leader เท่านั้น
+            $user = Auth::user();
+            if (!$user->isManager() && !$user->isCEO() && !$user->isLeader()) {
+                return response()->json(['error' => 'Unauthorized - Only Manager, CEO and Leader can use Drag & Drop'], 403);
+            }
+            
+            // Leader สามารถย้ายได้เฉพาะปัญหาที่ถูกมอบหมายให้ตัวเอง
+            if ($user->isLeader() && $ticket->assigned_to_user_id !== $user->id) {
+                return response()->json(['error' => 'Unauthorized - Leader can only move tickets assigned to them'], 403);
             }
 
             $request->validate([
@@ -600,9 +606,15 @@ class TicketController extends Controller
     public function updateStatusGet(Ticket $ticket, $status)
     {
         try {
-            // ตรวจสอบสิทธิ์การแก้ไข
-            if (!Auth::user()->canManageTickets() && Auth::id() !== $ticket->user_id) {
-                return redirect()->back()->with('error', 'Unauthorized');
+            // ตรวจสอบสิทธิ์การแก้ไข - เฉพาะ Manager, CEO และ Leader เท่านั้น
+            $user = Auth::user();
+            if (!$user->isManager() && !$user->isCEO() && !$user->isLeader()) {
+                return redirect()->back()->with('error', 'Unauthorized - Only Manager, CEO and Leader can use Drag & Drop');
+            }
+            
+            // Leader สามารถย้ายได้เฉพาะปัญหาที่ถูกมอบหมายให้ตัวเอง
+            if ($user->isLeader() && $ticket->assigned_to_user_id !== $user->id) {
+                return redirect()->back()->with('error', 'Unauthorized - Leader can only move tickets assigned to them');
             }
 
             // หา status ID จากชื่อ
