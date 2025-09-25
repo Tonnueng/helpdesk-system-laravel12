@@ -674,15 +674,13 @@
                         try {
                             this.isUpdating = true;
                             
+                            const formData = new FormData();
+                            formData.append('status_name', column);
+                            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                            
                             const response = await fetch(`/tickets/${this.draggedTicket.id}/status`, {
                                 method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                },
-                                body: JSON.stringify({
-                                    status_name: column
-                                })
+                                body: formData
                             });
 
                             const data = await response.json();
