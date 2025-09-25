@@ -201,6 +201,7 @@ Route::middleware('auth')->group(function () {
 
     // API Route สำหรับ Drag & Drop - อัปเดตสถานะของ ticket
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
+    Route::get('/tickets/{ticket}/status/{status}', [TicketController::class, 'updateStatusGet'])->name('tickets.updateStatusGet');
 
 });
 

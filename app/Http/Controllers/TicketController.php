@@ -593,4 +593,45 @@ class TicketController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * อัปเดตสถานะของ ticket สำหรับ Drag & Drop (GET method)
+     */
+    public function updateStatusGet(Ticket $ticket, $status)
+    {
+        try {
+            // ตรวจสอบสิทธิ์การแก้ไข
+            if (!Auth::user()->canManageTickets() && Auth::id() !== $ticket->user_id) {
+                return redirect()->back()->with('error', 'Unauthorized');
+            }
+
+            // หา status ID จากชื่อ
+            $statusModel = Status::where('name', $status)->first();
+            if (!$statusModel) {
+                return redirect()->back()->with('error', 'Status not found');
+            }
+
+            // อัปเดตสถานะ
+            $oldStatus = $ticket->status->name;
+            $ticket->update(['status_id' => $statusModel->id]);
+
+            // สร้าง ticket update record
+            $ticket->updates()->create([
+                'user_id' => Auth::id(),
+                'status_id' => $statusModel->id,
+                'comment' => "สถานะเปลี่ยนจาก {$oldStatus} เป็น {$status} ผ่าน Drag & Drop",
+                'is_internal' => false,
+            ]);
+
+            // ส่ง notification ถ้าจำเป็น
+            if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
+                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, Auth::user()));
+            }
+
+            return redirect()->back()->with('success', 'สถานะอัปเดตเรียบร้อยแล้ว');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'เกิดข้อผิดพลาดในการอัปเดตสถานะ: ' . $e->getMessage());
+        }
+    }
 }

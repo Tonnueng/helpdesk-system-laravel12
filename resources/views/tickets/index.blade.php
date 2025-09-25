@@ -674,26 +674,14 @@
                         try {
                             this.isUpdating = true;
                             
-                            const formData = new FormData();
-                            formData.append('status_name', column);
-                            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                            // Use GET method to avoid CSRF issues
+                            const url = `/tickets/${this.draggedTicket.id}/status/${column}`;
                             
-                            const response = await fetch(`/tickets/${this.draggedTicket.id}/status`, {
-                                method: 'PATCH',
-                                body: formData
-                            });
-
-                            const data = await response.json();
-
-                            if (response.ok && data.success) {
-                                this.showNotification('สถานะอัปเดตเรียบร้อยแล้ว', 'success');
-                                // Refresh the page to show updated data
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
-                            } else {
-                                throw new Error(data.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-                            }
+                            // Show loading notification
+                            this.showNotification('กำลังอัปเดตสถานะ...', 'info');
+                            
+                            // Redirect to the URL
+                            window.location.href = url;
                         } catch (error) {
                             console.error('Error updating ticket status:', error);
                             this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');
