@@ -554,8 +554,8 @@
                                     this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');
                                 } finally {
                                     // รีเซ็ต drag state
-                                this.draggedTicket = null;
-                                this.dragOverColumn = null;
+                                    this.draggedTicket = null;
+                                    this.dragOverColumn = null;
                                     this.isUpdating = false;
                                 }
                             }
