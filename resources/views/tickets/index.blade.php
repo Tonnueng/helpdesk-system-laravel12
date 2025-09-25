@@ -449,147 +449,8 @@
                     <p class="text-gray-600">{{ __('ยังไม่มีการแจ้งปัญหาเข้ามาในระบบ') }}</p>
                 </div>
             @else
-                <div class="grid gap-6" 
-                     :class="{
-                        'grid-cols-1': true,
-                        'md:grid-cols-2': kanbanStatuses.length <= 2,
-                        'md:grid-cols-3': kanbanStatuses.length === 3,
-                        'md:grid-cols-4': kanbanStatuses.length === 4,
-                        'md:grid-cols-5': kanbanStatuses.length === 5,
-                        'md:grid-cols-6': kanbanStatuses.length === 6
-                     }"
-                     x-data="{
-                        tickets: @js($tickets->groupBy('status.name')),
-                        kanbanStatuses: @js($kanbanStatuses),
-                        dragOverColumn: null,
-                        draggedTicket: null,
-                        isUpdating: false,
-                        
-                        init() {
-                            // Listen for page refresh events
-                            window.addEventListener('ticketUpdated', () => {
-                                this.refreshTickets();
-                            });
-                            
-                            // Refresh tickets every 30 seconds
-                            setInterval(() => {
-                                this.refreshTickets();
-                            }, 30000);
-                        },
-                        
-                        refreshTickets() {
-                            // สร้าง URL พร้อม query parameters
-                            const url = new URL('{{ route("tickets.ajax") }}', window.location.origin);
-                            
-                            // หา form element ที่ใกล้ที่สุด
-                            const form = this.$el.closest('form') || document.querySelector('form');
-                            
-                            if (form) {
-                            const formData = new FormData(form);
-                            
-                            // เพิ่ม query parameters
-                            for (let [key, value] of formData.entries()) {
-                                if (value) {
-                                    url.searchParams.append(key, value);
-                                    }
-                                }
-                            }
-                            
-                            fetch(url)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.tickets) {
-                                        this.tickets = data.tickets;
-                                    }
-                                    if (data.kanbanStatuses) {
-                                        this.kanbanStatuses = data.kanbanStatuses;
-                                    }
-                                })
-                                .catch(error => console.error('Error refreshing tickets:', error));
-                        },
-                        
-                        startDrag(ticket) {
-                            this.draggedTicket = ticket;
-                        },
-                        
-                        dragOver(column) {
-                            this.dragOverColumn = column;
-                        },
-                        
-                        dragLeave() {
-                            this.dragOverColumn = null;
-                        },
-                        
-                        async drop(column) {
-                            if (this.draggedTicket && this.dragOverColumn) {
-                                try {
-                                    // แสดง loading state
-                                    this.isUpdating = true;
-                                    
-                                    // ส่ง AJAX request เพื่ออัปเดตสถานะ
-                                    const response = await fetch(`/tickets/${this.draggedTicket.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                        },
-                                        body: JSON.stringify({
-                                            status_name: column
-                                        })
-                                    });
-
-                                    const data = await response.json();
-
-                                    if (response.ok && data.success) {
-                                        // อัปเดต UI โดยการ refresh หน้า
-                                        this.refreshTickets();
-                                        
-                                        // แสดงข้อความสำเร็จ
-                                        this.showNotification('สถานะอัปเดตเรียบร้อยแล้ว', 'success');
-                                    } else {
-                                        throw new Error(data.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-                                    }
-                                } catch (error) {
-                                    console.error('Error updating ticket status:', error);
-                                    this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');
-                                } finally {
-                                    // รีเซ็ต drag state
-                                    this.draggedTicket = null;
-                                    this.dragOverColumn = null;
-                                    this.isUpdating = false;
-                                }
-                            }
-                        },
-                        
-                        showNotification(message, type = 'info') {
-                            // สร้าง notification element
-                            const notification = document.createElement('div');
-                            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
-                                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
-                                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-                                'bg-blue-100 text-blue-800 border border-blue-200'
-                            }`;
-                            
-                            notification.innerHTML = `
-                                <div class="flex items-center">
-                                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
-                                    <span class="font-medium">${message}</span>
-                                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            `;
-                            
-                            document.body.appendChild(notification);
-                            
-                            // ลบ notification หลังจาก 5 วินาที
-                            setTimeout(() => {
-                                if (notification.parentElement) {
-                                    notification.remove();
-                                }
-                            }, 5000);
-                        }
-                     }">
+                <div class="grid gap-6 grid-cols-1 md:grid-cols-4" 
+                     x-data="kanbanBoard()">
                     
                     @php
                         $statusColumns = [
@@ -779,6 +640,98 @@
                     if (this.mainCategory) {
                         this.loadSubCategories();
                     }
+                }
+            }
+        }
+        
+        function kanbanBoard() {
+            return {
+                tickets: @js($tickets->groupBy('status.name')),
+                kanbanStatuses: @js($kanbanStatuses),
+                dragOverColumn: null,
+                draggedTicket: null,
+                isUpdating: false,
+                
+                init() {
+                    console.log('Kanban board initialized');
+                },
+                
+                startDrag(ticket) {
+                    this.draggedTicket = ticket;
+                    console.log('Started dragging ticket:', ticket.id);
+                },
+                
+                dragOver(column) {
+                    this.dragOverColumn = column;
+                },
+                
+                dragLeave() {
+                    this.dragOverColumn = null;
+                },
+                
+                async drop(column) {
+                    if (this.draggedTicket && this.dragOverColumn) {
+                        try {
+                            this.isUpdating = true;
+                            
+                            const response = await fetch(`/tickets/${this.draggedTicket.id}/status`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify({
+                                    status_name: column
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok && data.success) {
+                                this.showNotification('สถานะอัปเดตเรียบร้อยแล้ว', 'success');
+                                // Refresh the page to show updated data
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                throw new Error(data.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+                            }
+                        } catch (error) {
+                            console.error('Error updating ticket status:', error);
+                            this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                        } finally {
+                            this.draggedTicket = null;
+                            this.dragOverColumn = null;
+                            this.isUpdating = false;
+                        }
+                    }
+                },
+                
+                showNotification(message, type = 'info') {
+                    const notification = document.createElement('div');
+                    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+                        type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+                        type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                        'bg-blue-100 text-blue-800 border border-blue-200'
+                    }`;
+                    
+                    notification.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                            <span class="font-medium">${message}</span>
+                            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 5000);
                 }
             }
         }
