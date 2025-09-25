@@ -569,7 +569,7 @@ class TicketController extends Controller
             $ticket->update(['status_id' => $status->id]);
 
             // สร้าง ticket update record
-            $ticket->updates()->create([
+            $ticketUpdate = $ticket->updates()->create([
                 'user_id' => Auth::id(),
                 'status_id' => $status->id,
                 'comment' => "สถานะเปลี่ยนจาก {$oldStatus} เป็น {$request->status_name} ผ่าน Drag & Drop",
@@ -578,7 +578,7 @@ class TicketController extends Controller
 
             // ส่ง notification ถ้าจำเป็น
             if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
-                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, Auth::user()));
+                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, $ticketUpdate));
             }
 
             return response()->json([
@@ -616,7 +616,7 @@ class TicketController extends Controller
             $ticket->update(['status_id' => $statusModel->id]);
 
             // สร้าง ticket update record
-            $ticket->updates()->create([
+            $ticketUpdate = $ticket->updates()->create([
                 'user_id' => Auth::id(),
                 'status_id' => $statusModel->id,
                 'comment' => "สถานะเปลี่ยนจาก {$oldStatus} เป็น {$status} ผ่าน Drag & Drop",
@@ -625,7 +625,7 @@ class TicketController extends Controller
 
             // ส่ง notification ถ้าจำเป็น
             if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
-                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, Auth::user()));
+                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, $ticketUpdate));
             }
 
             return redirect()->back()->with('success', 'สถานะอัปเดตเรียบร้อยแล้ว');
