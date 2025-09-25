@@ -542,4 +542,55 @@ class TicketController extends Controller
 
         return null;
     }
+
+    /**
+     * อัปเดตสถานะของ ticket สำหรับ Drag & Drop
+     */
+    public function updateStatus(Request $request, Ticket $ticket)
+    {
+        try {
+            // ตรวจสอบสิทธิ์การแก้ไข
+            if (!Auth::user()->canManageTickets() && Auth::id() !== $ticket->user_id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $request->validate([
+                'status_name' => 'required|string|exists:statuses,name'
+            ]);
+
+            // หา status ID จากชื่อ
+            $status = Status::where('name', $request->status_name)->first();
+            if (!$status) {
+                return response()->json(['error' => 'Status not found'], 404);
+            }
+
+            // อัปเดตสถานะ
+            $oldStatus = $ticket->status->name;
+            $ticket->update(['status_id' => $status->id]);
+
+            // สร้าง ticket update record
+            $ticket->updates()->create([
+                'user_id' => Auth::id(),
+                'status_id' => $status->id,
+                'comment' => "สถานะเปลี่ยนจาก {$oldStatus} เป็น {$request->status_name} ผ่าน Drag & Drop",
+                'is_internal' => false,
+            ]);
+
+            // ส่ง notification ถ้าจำเป็น
+            if ($ticket->assigned_to_user_id && $ticket->assigned_to_user_id !== Auth::id()) {
+                $ticket->assignedTo->notify(new TicketUpdatedNotification($ticket, Auth::user()));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'สถานะอัปเดตเรียบร้อยแล้ว',
+                'ticket' => $ticket->load('status', 'priority', 'category', 'user', 'assignedTo')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'เกิดข้อผิดพลาดในการอัปเดตสถานะ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

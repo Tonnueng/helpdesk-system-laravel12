@@ -199,6 +199,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
 
+    // API Route สำหรับ Drag & Drop - อัปเดตสถานะของ ticket
+    Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
+
 });
 
 // API Routes for categories (outside auth middleware)

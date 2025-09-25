@@ -463,6 +463,7 @@
                         kanbanStatuses: @js($kanbanStatuses),
                         dragOverColumn: null,
                         draggedTicket: null,
+                        isUpdating: false,
                         
                         init() {
                             // Listen for page refresh events
@@ -519,14 +520,74 @@
                             this.dragOverColumn = null;
                         },
                         
-                        drop(column) {
+                        async drop(column) {
                             if (this.draggedTicket && this.dragOverColumn) {
-                                // Here you would typically make an AJAX call to update the ticket status
-                                console.log('Moving ticket', this.draggedTicket.id, 'to column', column);
-                                // For now, we'll just reset the drag state
+                                try {
+                                    // แสดง loading state
+                                    this.isUpdating = true;
+                                    
+                                    // ส่ง AJAX request เพื่ออัปเดตสถานะ
+                                    const response = await fetch(`/tickets/${this.draggedTicket.id}/status`, {
+                                        method: 'PATCH',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        body: JSON.stringify({
+                                            status_name: column
+                                        })
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (response.ok && data.success) {
+                                        // อัปเดต UI โดยการ refresh หน้า
+                                        this.refreshTickets();
+                                        
+                                        // แสดงข้อความสำเร็จ
+                                        this.showNotification('สถานะอัปเดตเรียบร้อยแล้ว', 'success');
+                                    } else {
+                                        throw new Error(data.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+                                    }
+                                } catch (error) {
+                                    console.error('Error updating ticket status:', error);
+                                    this.showNotification('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                                } finally {
+                                    // รีเซ็ต drag state
                                 this.draggedTicket = null;
                                 this.dragOverColumn = null;
+                                    this.isUpdating = false;
+                                }
                             }
+                        },
+                        
+                        showNotification(message, type = 'info') {
+                            // สร้าง notification element
+                            const notification = document.createElement('div');
+                            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+                                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+                                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                                'bg-blue-100 text-blue-800 border border-blue-200'
+                            }`;
+                            
+                            notification.innerHTML = `
+                                <div class="flex items-center">
+                                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                                    <span class="font-medium">${message}</span>
+                                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            `;
+                            
+                            document.body.appendChild(notification);
+                            
+                            // ลบ notification หลังจาก 5 วินาที
+                            setTimeout(() => {
+                                if (notification.parentElement) {
+                                    notification.remove();
+                                }
+                            }, 5000);
                         }
                      }">
                     
@@ -550,11 +611,14 @@
                             $ticketsInStatus = $tickets->where('status.name', $statusName);
                         @endphp
                         
-                        <div class="bg-gray-50 rounded-xl p-4 min-h-[600px]"
+                        <div class="bg-gray-50 rounded-xl p-4 min-h-[600px] transition-all duration-200"
                              @dragover.prevent="dragOver('{{ $statusName }}')"
                              @dragleave="dragLeave()"
                              @drop.prevent="drop('{{ $statusName }}')"
-                             :class="{ 'bg-{{ $column['color'] }}-50': dragOverColumn === '{{ $statusName }}' }">
+                             :class="{ 
+                                 'bg-{{ $column['color'] }}-50 border-2 border-{{ $column['color'] }}-300': dragOverColumn === '{{ $statusName }}',
+                                 'opacity-50': isUpdating
+                             }">
                             
                             {{-- Column Header --}}
                             <div class="flex items-center justify-between mb-4">
@@ -574,7 +638,9 @@
                                         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer group"
                                              draggable="true"
                                              @dragstart="startDrag(@js($ticket))"
-                                             onclick="window.location.href='{{ route('tickets.show', $ticket) }}'">
+                                             @dragend="draggedTicket = null"
+                                             :class="{ 'opacity-50 scale-95': draggedTicket && draggedTicket.id === {{ $ticket->id }} }"
+                                             onclick="if (!draggedTicket) window.location.href='{{ route('tickets.show', $ticket) }}'">
                                             
                                             {{-- Ticket Header --}}
                                             <div class="flex items-start justify-between mb-3">
