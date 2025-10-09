@@ -1,6 +1,12 @@
 <x-app-layout>
     <x-slot name="head">
         <style>
+            .line-clamp-1 {
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
             .line-clamp-2 {
                 display: -webkit-box;
                 -webkit-line-clamp: 2;
@@ -92,98 +98,168 @@
                         </button>
                     </div>
 
-                    {{-- Filter Options --}}
+                                        {{-- Filter Options --}}
                     <div x-show="showFilters" 
                          x-transition:enter="transition ease-out duration-150" 
                          x-transition:enter-start="opacity-0 transform -translate-y-1" 
                          x-transition:enter-end="opacity-100 transform translate-y-0"
-                         class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-3 border-t border-gray-100">
-                        <div>
-                            <select name="status" 
-                                    @change="$el.form.submit()"
-                                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">สถานะทั้งหมด</option>
-                                @foreach ($statuses as $status)
-                                    @php
-                                        $statusName = $status->name;
-                                        $thaiStatus = '';
-                                        switch ($statusName) {
-                                            case 'New': $thaiStatus = 'คิวรอ'; break;
-                                            case 'In Progress': $thaiStatus = 'กำลังดำเนินการ'; break;
-                                            case 'Pending': $thaiStatus = 'รอตรวจสอบ'; break;
-                                            case 'Resolved': $thaiStatus = 'เสร็จสิ้น'; break;
-                                            case 'Closed': $thaiStatus = 'ปิดแล้ว'; break;
-                                            case 'Rejected': $thaiStatus = 'ปฏิเสธ'; break;
-                                            default: $thaiStatus = $statusName; break;
-                                        }
-                                    @endphp
-                                    <option value="{{ $status->id }}" {{ request('status') == $status->id ? 'selected' : '' }}>
-                                        {{ $thaiStatus }}
-                                    </option>
-                                @endforeach
-                            </select>
+                         class="space-y-4 pt-3 border-t border-gray-100">
+                        
+                        {{-- Row 1: Basic Filters --}}
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            <div>
+                                <select name="status" 
+                                        @change="$el.form.submit()"
+                                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">สถานะทั้งหมด</option>
+                                    @foreach ($statuses as $status)
+                                        @php
+                                            $statusName = $status->name;
+                                            $thaiStatus = '';
+                                            switch ($statusName) {
+                                                case 'New': $thaiStatus = 'คิวรอ'; break;
+                                                case 'In Progress': $thaiStatus = 'กำลังดำเนินการ'; break;
+                                                case 'Pending': $thaiStatus = 'รอตรวจสอบ'; break;
+                                                case 'Resolved': $thaiStatus = 'เสร็จสิ้น'; break;
+                                                case 'Closed': $thaiStatus = 'ปิดแล้ว'; break;
+                                                case 'Rejected': $thaiStatus = 'ปฏิเสธ'; break;
+                                                default: $thaiStatus = $statusName; break;
+                                            }
+                                        @endphp
+                                        <option value="{{ $status->id }}" {{ request('status') == $status->id ? 'selected' : '' }}>
+                                            {{ $thaiStatus }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <select name="main_category" 
+                                        x-model="mainCategory"
+                                        @change="loadSubCategories()"
+                                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">หมวดหมู่หลัก</option>
+                                    @foreach ($categories->whereNull('parent_category') as $mainCategory)
+                                        <option value="{{ $mainCategory->name }}" {{ request('main_category') == $mainCategory->name ? 'selected' : '' }}>
+                                            {{ $mainCategory->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <select name="sub_category" 
+                                        x-model="subCategory"
+                                        x-html="subCategoryOptions"
+                                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                </select>
+                            </div>
+                            <div>
+                                <select name="priority" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">ความสำคัญ</option>
+                                    @foreach ($priorities as $priority)
+                                        @php
+                                            $priorityName = $priority->name;
+                                            $thaiPriority = '';
+                                            switch ($priorityName) {
+                                                case 'High': $thaiPriority = 'เร่งด่วน'; break;
+                                                case 'Medium': $thaiPriority = 'สูง'; break;
+                                                case 'Low': $thaiPriority = 'ปานกลาง'; break;
+                                                case 'Critical': $thaiPriority = 'ต่ำ'; break;
+                                                default: $thaiPriority = $priorityName; break;
+                                            }
+                                        @endphp
+                                        <option value="{{ $priority->id }}" {{ request('priority') == $priority->id ? 'selected' : '' }}>
+                                            {{ $thaiPriority }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <select name="sort_by" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>วันที่แจ้ง</option>
+                                    <option value="title" {{ request('sort_by') == 'title' ? 'selected' : '' }}>หัวข้อ</option>
+                                    <option value="priority_id" {{ request('sort_by') == 'priority_id' ? 'selected' : '' }}>ความสำคัญ</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <select name="main_category" 
-                                    x-model="mainCategory"
-                                    @change="loadSubCategories()"
-                                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">หมวดหมู่หลัก</option>
-                                @foreach ($categories->whereNull('parent_category') as $mainCategory)
-                                    <option value="{{ $mainCategory->name }}" {{ request('main_category') == $mainCategory->name ? 'selected' : '' }}>
-                                        {{ $mainCategory->name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        
+                        {{-- Row 2: Date Range Filters --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div>
+                                <label for="date_from" class="block text-xs font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-calendar-alt mr-1"></i>วันที่เริ่มต้น
+                                </label>
+                                <input type="date" 
+                                       name="date_from" 
+                                       id="date_from"
+                                       value="{{ request('date_from') }}"
+                                       class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="date_to" class="block text-xs font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-calendar-alt mr-1"></i>วันที่สิ้นสุด
+                                </label>
+                                <input type="date" 
+                                       name="date_to" 
+                                       id="date_to"
+                                       value="{{ request('date_to') }}"
+                                       class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            @if (Auth::user()->isManager() || Auth::user()->isCEO())
+                            <div>
+                                <select name="assigned_to" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">ผู้รับผิดชอบ</option>
+                                    <option value="me" {{ request('assigned_to') == 'me' ? 'selected' : '' }}>มอบหมายให้ฉัน</option>
+                                    <option value="unassigned" {{ request('assigned_to') == 'unassigned' ? 'selected' : '' }}>ยังไม่ได้มอบหมาย</option>
+                                    @foreach ($agents as $agent)
+                                        <option value="{{ $agent->id }}" {{ request('assigned_to') == $agent->id ? 'selected' : '' }}>
+                                            {{ $agent->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
+                            <div class="flex items-end">
+                                <button type="button" 
+                                        @click.prevent="clearDateFilters()"
+                                        class="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors">
+                                    <i class="fas fa-times mr-1"></i>ล้างวันที่
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <select name="sub_category" 
-                                    x-model="subCategory"
-                                    x-html="subCategoryOptions"
-                                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                            </select>
-                        </div>
-                        <div>
-                            <select name="priority" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">ความสำคัญ</option>
-                                @foreach ($priorities as $priority)
-                                    @php
-                                        $priorityName = $priority->name;
-                                                    $thaiPriority = '';
-                                                    switch ($priorityName) {
-                                            case 'High': $thaiPriority = 'เร่งด่วน'; break;
-                                            case 'Medium': $thaiPriority = 'สูง'; break;
-                                            case 'Low': $thaiPriority = 'ปานกลาง'; break;
-                                            case 'Critical': $thaiPriority = 'ต่ำ'; break;
-                                            default: $thaiPriority = $priorityName; break;
-                                                    }
-                                                @endphp
-                                    <option value="{{ $priority->id }}" {{ request('priority') == $priority->id ? 'selected' : '' }}>
-                                        {{ $thaiPriority }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @if (Auth::user()->isManager() || Auth::user()->isCEO())
-                        <div>
-                            <select name="assigned_to" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">ผู้รับผิดชอบ</option>
-                                <option value="me" {{ request('assigned_to') == 'me' ? 'selected' : '' }}>มอบหมายให้ฉัน</option>
-                                <option value="unassigned" {{ request('assigned_to') == 'unassigned' ? 'selected' : '' }}>ยังไม่ได้มอบหมาย</option>
-                                @foreach ($agents as $agent)
-                                    <option value="{{ $agent->id }}" {{ request('assigned_to') == $agent->id ? 'selected' : '' }}>
-                                        {{ $agent->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @endif
-                        <div>
-                            <select name="sort_by" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>วันที่แจ้ง</option>
-                                <option value="title" {{ request('sort_by') == 'title' ? 'selected' : '' }}>หัวข้อ</option>
-                                <option value="priority_id" {{ request('sort_by') == 'priority_id' ? 'selected' : '' }}>ความสำคัญ</option>
-                            </select>
+                        
+                        {{-- Quick Date Presets --}}
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-xs font-medium text-gray-600 mr-2">ช่วงเวลาด่วน:</span>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('today')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                วันนี้
+                            </button>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('yesterday')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                เมื่อวาน
+                            </button>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('this_week')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                สัปดาห์นี้
+                            </button>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('last_week')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                สัปดาห์ที่แล้ว
+                            </button>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('this_month')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                เดือนนี้
+                            </button>
+                            <button type="button" 
+                                    @click.prevent="setDateRange('last_month')"
+                                    class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                                เดือนที่แล้ว
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -350,6 +426,33 @@
             </div>
 
             {{-- Filtered Status View - เมื่อคลิกการ์ดสถานะ --}}
+            {{-- Tab Navigation --}}
+            <div class="mb-8" x-data="{ activeTab: 'kanban' }">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8">
+                        <button @click="activeTab = 'kanban'" 
+                                :class="activeTab === 'kanban' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
+                            <i class="fas fa-check-square mr-2"></i>
+                            ภาพรวมปัญหา
+                        </button>
+                        <button @click="activeTab = 'list'" 
+                                :class="activeTab === 'list' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
+                            <i class="fas fa-list mr-2"></i>
+                            รายการปัญหา
+                        </button>
+                    </nav>
+                </div>
+
+                {{-- Tab Content --}}
+                <div class="mt-6">
+                    {{-- Tab 1: Kanban Board --}}
+                    <div x-show="activeTab === 'kanban'" 
+                         x-transition:enter="transition ease-out duration-200" 
+                         x-transition:enter-start="opacity-0 transform translate-y-2" 
+                         x-transition:enter-end="opacity-100 transform translate-y-0">
+
             @if(request('status'))
                 {{-- Header สำหรับสถานะที่เลือก - มินิมอล --}}
                 @php
@@ -494,6 +597,12 @@
                         @php
                             $column = $statusColumns[$statusName] ?? ['title' => $statusName, 'color' => 'gray', 'icon' => 'fas fa-circle'];
                             $ticketsInStatus = $tickets->where('status.name', $statusName);
+                            
+                            // เรียงลำดับตามความสำคัญ (Critical -> High -> Medium -> Low)
+                            $priorityOrder = ['Critical' => 1, 'High' => 2, 'Medium' => 3, 'Low' => 4];
+                            $ticketsInStatus = $ticketsInStatus->sortBy(function($ticket) use ($priorityOrder) {
+                                return $priorityOrder[$ticket->priority->name] ?? 5;
+                            });
                         @endphp
                         
                         <div class="bg-gray-50 rounded-xl p-4 min-h-[600px] transition-all duration-200"
@@ -620,6 +729,169 @@
                 </div>
             @endif
             @endif
+                                </div>
+                            </div>
+
+                            {{-- Tab 2: รายการปัญหา (List View) --}}
+                            <div x-show="activeTab === 'list'" 
+                                 x-transition:enter="transition ease-out duration-200" 
+                                 x-transition:enter-start="opacity-0 transform translate-y-2" 
+                                 x-transition:enter-end="opacity-100 transform translate-y-0">
+                                
+                                {{-- Header สำหรับแท็บรายการปัญหา --}}
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-info-circle text-blue-500 text-lg mr-3"></i>
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-blue-800">รายการปัญหาที่ยังแก้ไขไม่เสร็จ</h4>
+                                            <p class="text-sm text-blue-600 mt-1">แสดงเฉพาะปัญหาที่ยังไม่ได้แก้ไขเสร็จ (ไม่รวมสถานะ "เสร็จสิ้น" และ "ปิดแล้ว")</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {{-- Tickets Table --}}
+                                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">หัวข้อ</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้แจ้ง</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ความสำคัญ</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้รับผิดชอบ</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200">
+                                                @php
+                                                    // กรองเฉพาะปัญหาที่ยังแก้ไขไม่เสร็จ
+                                                    $pendingTickets = $tickets->filter(function($ticket) {
+                                                        return !in_array($ticket->status->name, ['Resolved', 'Closed']);
+                                                    });
+                                                    
+                                                    // เรียงลำดับตามความสำคัญ (Critical -> High -> Medium -> Low)
+                                                    $priorityOrder = ['Critical' => 1, 'High' => 2, 'Medium' => 3, 'Low' => 4];
+                                                    $pendingTickets = $pendingTickets->sortBy(function($ticket) use ($priorityOrder) {
+                                                        return $priorityOrder[$ticket->priority->name] ?? 5;
+                                                    });
+                                                @endphp
+                                                @forelse($pendingTickets as $ticket)
+                                                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            #{{ $ticket->id }}
+                                                        </td>
+                                                        <td class="px-6 py-4">
+                                                            <div class="text-sm font-medium text-gray-900 line-clamp-2">
+                                                                {{ $ticket->title }}
+                                                            </div>
+                                                            <div class="text-sm text-gray-500 line-clamp-1">
+                                                                {{ Str::limit($ticket->description, 100) }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                                                                    <span class="text-xs font-semibold text-indigo-600">
+                                                                        {{ substr($ticket->user->name, 0, 1) }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="text-sm text-gray-900">{{ $ticket->user->name }}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            @php
+                                                                $statusName = $ticket->status->name;
+                                                                $statusColors = [
+                                                                    'New' => 'bg-blue-100 text-blue-800',
+                                                                    'In Progress' => 'bg-yellow-100 text-yellow-800',
+                                                                    'Pending' => 'bg-orange-100 text-orange-800',
+                                                                    'Resolved' => 'bg-green-100 text-green-800',
+                                                                    'Closed' => 'bg-gray-100 text-gray-800',
+                                                                    'Rejected' => 'bg-red-100 text-red-800',
+                                                                ];
+                                                                $statusColor = $statusColors[$statusName] ?? 'bg-gray-100 text-gray-800';
+                                                                
+                                                                $statusTexts = [
+                                                                    'New' => 'คิวรอ',
+                                                                    'In Progress' => 'กำลังดำเนินการ',
+                                                                    'Pending' => 'รอตรวจสอบ',
+                                                                    'Resolved' => 'เสร็จสิ้น',
+                                                                    'Closed' => 'ปิดแล้ว',
+                                                                    'Rejected' => 'ปฏิเสธ',
+                                                                ];
+                                                                $statusText = $statusTexts[$statusName] ?? $statusName;
+                                                            @endphp
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColor }}">
+                                                                {{ $statusText }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            @php
+                                                                $priorityName = $ticket->priority->name;
+                                                                $priorityColors = [
+                                                                    'Critical' => 'bg-red-100 text-red-800',
+                                                                    'High' => 'bg-orange-100 text-orange-800',
+                                                                    'Medium' => 'bg-yellow-100 text-yellow-800',
+                                                                    'Low' => 'bg-green-100 text-green-800',
+                                                                ];
+                                                                $priorityColor = $priorityColors[$priorityName] ?? 'bg-gray-100 text-gray-800';
+                                                                
+                                                                $priorityTexts = [
+                                                                    'Critical' => 'เร่งด่วน',
+                                                                    'High' => 'สูง',
+                                                                    'Medium' => 'ปานกลาง',
+                                                                    'Low' => 'ต่ำ',
+                                                                ];
+                                                                $priorityText = $priorityTexts[$priorityName] ?? $priorityName;
+                                                            @endphp
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $priorityColor }}">
+                                                                {{ $priorityText }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            @if($ticket->assignedTo)
+                                                                <div class="flex items-center">
+                                                                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                                                        <span class="text-xs font-semibold text-green-600">
+                                                                            {{ substr($ticket->assignedTo->name, 0, 1) }}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="text-sm text-gray-900">{{ $ticket->assignedTo->name }}</div>
+                                                                </div>
+                                                            @else
+                                                                <span class="text-sm text-gray-500 italic">ยังไม่ได้มอบหมาย</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {{ $ticket->created_at->format('d/m/Y') }}
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                            <a href="{{ route('tickets.show', $ticket) }}" class="text-indigo-600 hover:text-indigo-900 transition-colors duration-150">
+                                                                ดูรายละเอียด
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="8" class="px-6 py-12 text-center">
+                                                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-3">
+                                                                <i class="fas fa-check-circle text-lg text-green-400"></i>
+                                                            </div>
+                                                            <h3 class="text-lg font-medium text-gray-800 mb-1">ไม่มีปัญหาที่ยังแก้ไขไม่เสร็จ</h3>
+                                                            <p class="text-gray-500 text-sm">ปัญหาทั้งหมดได้รับการแก้ไขเสร็จเรียบร้อยแล้ว</p>
+                                                        </td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
         </div>
     </div>
 
@@ -627,6 +899,7 @@
         function filterData() {
             return {
                 showFilters: false,
+                isProcessing: false,
                 mainCategory: '{{ request('main_category') }}',
                 subCategory: '{{ request('sub_category') }}',
                 subCategories: [],
@@ -661,6 +934,118 @@
                         console.error('Error loading subcategories:', error);
                         this.subCategories = [];
                         this.subCategoryOptions = '<option value="">หมวดหมู่ย่อย</option>';
+                    }
+                },
+                
+                // Date filter functions
+                setDateRange(range) {
+                    console.log('Setting date range:', range);
+                    
+                    // Prevent multiple clicks
+                    if (this.isProcessing) {
+                        console.log('Already processing, ignoring click');
+                        return;
+                    }
+                    this.isProcessing = true;
+                    
+                    try {
+                        const today = new Date();
+                        
+                        let fromDate, toDate;
+                        
+                        switch(range) {
+                            case 'today':
+                                fromDate = toDate = today.toISOString().split('T')[0];
+                                break;
+                            case 'yesterday':
+                                const yesterday = new Date(today);
+                                yesterday.setDate(yesterday.getDate() - 1);
+                                fromDate = toDate = yesterday.toISOString().split('T')[0];
+                                break;
+                            case 'this_week':
+                                const startOfWeek = new Date(today);
+                                startOfWeek.setDate(today.getDate() - today.getDay());
+                                const endOfWeek = new Date(today);
+                                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                                fromDate = startOfWeek.toISOString().split('T')[0];
+                                toDate = endOfWeek.toISOString().split('T')[0];
+                                break;
+                            case 'last_week':
+                                const lastWeekStart = new Date(today);
+                                lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+                                const lastWeekEnd = new Date(lastWeekStart);
+                                lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+                                fromDate = lastWeekStart.toISOString().split('T')[0];
+                                toDate = lastWeekEnd.toISOString().split('T')[0];
+                                break;
+                            case 'this_month':
+                                fromDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                                toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+                                break;
+                            case 'last_month':
+                                fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
+                                toDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+                                break;
+                            default:
+                                console.log('Unknown date range:', range);
+                                this.isProcessing = false;
+                                return;
+                        }
+                        
+                        console.log('Setting dates - From:', fromDate, 'To:', toDate);
+                        
+                        // Update form fields
+                        const dateFrom = document.getElementById('date_from');
+                        const dateTo = document.getElementById('date_to');
+                        if (dateFrom) dateFrom.value = fromDate;
+                        if (dateTo) dateTo.value = toDate;
+                        
+                        // Build URL with parameters and reload page
+                        const url = new URL(window.location);
+                        url.searchParams.set('date_from', fromDate);
+                        url.searchParams.set('date_to', toDate);
+                        
+                        console.log('Reloading page with URL:', url.toString());
+                        
+                        // Use location.replace to avoid adding to browser history
+                        window.location.replace(url.toString());
+                        
+                    } catch (error) {
+                        console.error('Error in setDateRange:', error);
+                        this.isProcessing = false;
+                    }
+                },
+                
+                clearDateFilters() {
+                    console.log('Clearing date filters');
+                    
+                    // Prevent multiple clicks
+                    if (this.isProcessing) {
+                        console.log('Already processing, ignoring click');
+                        return;
+                    }
+                    this.isProcessing = true;
+                    
+                    try {
+                        // Clear form fields
+                        const dateFrom = document.getElementById('date_from');
+                        const dateTo = document.getElementById('date_to');
+                        if (dateFrom) dateFrom.value = '';
+                        if (dateTo) dateTo.value = '';
+                        
+                        // Build URL without date parameters
+                        const url = new URL(window.location);
+                        url.searchParams.delete('date_from');
+                        url.searchParams.delete('date_to');
+                        
+                        console.log('Reloading page with URL:', url.toString());
+                        
+                        // Use location.replace to avoid adding to browser history
+                        window.location.replace(url.toString());
+                        
+                    } catch (error) {
+                        console.error('Error in clearDateFilters:', error);
+                        this.isProcessing = false;
                     }
                 },
                 

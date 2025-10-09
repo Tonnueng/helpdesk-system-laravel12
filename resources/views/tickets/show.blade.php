@@ -1,8 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('รายละเอียดปัญหา: ') . $ticket->title }}
-        </h2>
+       
     </x-slot>
 
     <div class="py-8 bg-gray-50">
@@ -18,7 +16,7 @@
                         </a>
                     </div>
 
-                    <h1 class="text-3xl font-bold mb-8 text-indigo-700">{{ __('รายละเอียดตั๋ว: ') . $ticket->title }}</h1>
+                    <h1 class="text-3xl font-bold mb-8 text-indigo-700">{{ __('รายละเอียดปัญหา: ') . $ticket->title }}</h1>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div class="md:col-span-2">
@@ -126,18 +124,235 @@
                                         </div>
                                         <div>
                                             <dt class="text-sm font-medium text-gray-500">{{ __('วันที่แจ้ง:') }}</dt>
-                                            <dd class="mt-1 text-gray-900">{{ $ticket->created_at->format('d/m/Y H:i') }}</dd>
+                                            <dd class="mt-1 text-gray-900">{{ $ticket->created_at->setTimezone('Asia/Bangkok')->format('d/m/Y H:i:s') }}</dd>
                                         </div>
                                         <div>
                                             <dt class="text-sm font-medium text-gray-500">{{ __('วันที่พบปัญหา:') }}</dt>
-                                            <dd class="mt-1 text-gray-900">{{ $ticket->reported_at ? $ticket->reported_at->format('d/m/Y H:i') : '-' }}</dd>
+                                            <dd class="mt-1 text-gray-900">{{ $ticket->reported_at ? $ticket->reported_at->setTimezone('Asia/Bangkok')->format('d/m/Y H:i:s') : '-' }}</dd>
                                         </div>
                                     </dl>
                                     <hr class="my-6 border-gray-300">
                                     <h6 class="text-lg font-bold mb-4 text-gray-800">{{ __('รายละเอียด:') }}</h6>
                                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-gray-700 leading-relaxed break-words">
-                                        {{ $ticket->description }}
+                                        @php
+                                            // แปลง URL ในข้อความให้เป็นลิงค์ที่คลิกได้
+                                            $description = $ticket->description;
+                                            
+                                            // Pattern สำหรับหา URL
+                                            $urlPattern = '/(https?:\/\/[^\s]+|www\.[^\s]+)/i';
+                                            
+                                            // แทนที่ URL ด้วยลิงค์ที่คลิกได้
+                                            $description = preg_replace_callback($urlPattern, function($matches) {
+                                                $url = $matches[1];
+                                                
+                                                // เพิ่ม https:// ถ้าไม่มี protocol
+                                                if (!preg_match('/^https?:\/\//', $url)) {
+                                                    $url = 'https://' . $url;
+                                                }
+                                                
+                                                return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline">' . htmlspecialchars($matches[1]) . '</a>';
+                                            }, $description);
+                                            
+                                            // แปลง newline เป็น <br>
+                                            $description = nl2br($description);
+                                        @endphp
+                                        {!! $description !!}
                                     </div>
+
+                                    {{-- ส่วนแสดงลิงค์ --}}
+                                    @if($ticket->links)
+                                    <hr class="my-6 border-gray-300">
+                                    <h6 class="text-lg font-bold mb-4 text-gray-800 flex items-center">
+                                        <i class="fas fa-link text-blue-500 mr-2"></i>
+                                        ลิงค์ที่เกี่ยวข้อง
+                                    </h6>
+                                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                        @php
+                                            // แยกลิงค์ด้วย newline หรือ comma
+                                            $links = preg_split('/[\n\r,]+/', $ticket->links);
+                                            $links = array_filter(array_map('trim', $links));
+                                        @endphp
+                                        
+                                        @if(count($links) > 0)
+                                            <ul class="space-y-2">
+                                                @foreach($links as $link)
+                                                    @if(!empty($link))
+                                                        <li>
+                                                            @php
+                                                                // ตรวจสอบว่าเป็น URL หรือไม่
+                                                                $isUrl = filter_var($link, FILTER_VALIDATE_URL) || 
+                                                                         preg_match('/^https?:\/\//', $link) ||
+                                                                         preg_match('/^www\./', $link);
+                                                                
+                                                                // เพิ่ม https:// ถ้าไม่มี protocol
+                                                                if ($isUrl && !preg_match('/^https?:\/\//', $link)) {
+                                                                    $link = 'https://' . $link;
+                                                                }
+                                                            @endphp
+                                                            
+                                                            @if($isUrl)
+                                                                <a href="{{ $link }}" 
+                                                                   target="_blank" 
+                                                                   rel="noopener noreferrer"
+                                                                   class="text-blue-600 hover:text-blue-800 hover:underline break-all flex items-center">
+                                                                    <i class="fas fa-external-link-alt mr-2 text-xs"></i>
+                                                                    {{ $link }}
+                                                                </a>
+                                                            @else
+                                                                <span class="text-gray-600 break-all">{{ $link }}</span>
+                                                            @endif
+                                                        </li>
+                                                    @endif
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <p class="text-gray-500 italic">ไม่มีลิงค์ที่เกี่ยวข้อง</p>
+                                        @endif
+                                    </div>
+                                    @endif
+
+                                    {{-- ส่วนแสดงรูปภาพ --}}
+                                    @php
+                                        $validImages = $ticket->getImageUrls();
+                                        $validImageCount = count($validImages);
+                                    @endphp
+                                    
+                                    @if($validImageCount > 0)
+                                    <hr class="my-6 border-gray-300">
+                                    <h6 class="text-lg font-bold mb-4 text-gray-800 flex items-center">
+                                        <i class="fas fa-images text-blue-500 mr-2"></i>
+                                        รูปภาพประกอบ ({{ $validImageCount }} รูป)
+                                    </h6>
+                                    
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        @foreach($validImages as $index => $imageUrl)
+                                            <div class="relative group">
+                                                <div class="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                                    <img src="{{ $imageUrl }}" 
+                                                         alt="รูปภาพประกอบ {{ $index + 1 }}"
+                                                         class="w-full h-48 object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                                                         onclick="openImageModal('{{ $imageUrl }}', {{ $index + 1 }}, {{ $validImageCount }})"
+                                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                    
+                                                    {{-- Fallback when image fails to load --}}
+                                                    <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center hidden">
+                                                        <div class="text-center text-gray-500">
+                                                            <i class="fas fa-image text-3xl mb-2"></i>
+                                                            <p class="text-sm">ไม่สามารถโหลดรูปภาพได้</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {{-- Overlay with image number --}}
+                                                <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-full">
+                                                    {{ $index + 1 }}/{{ $validImageCount }}
+                                                </div>
+                                                
+                                                {{-- Primary image indicator --}}
+                                                @if($index === 0)
+                                                    <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                                                        <i class="fas fa-star mr-1"></i>หลัก
+                                                    </div>
+                                                @endif
+                                                
+                                                {{-- Hover effect --}}
+                                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                    <i class="fas fa-search-plus text-white text-2xl"></i>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @elseif($ticket->image_count > 0)
+                                    {{-- แสดงข้อความเมื่อมีข้อมูลรูปภาพแต่ไฟล์ไม่พบ --}}
+                                    <hr class="my-6 border-gray-300">
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                                            <div>
+                                                <h6 class="text-sm font-medium text-yellow-800">รูปภาพไม่พบ</h6>
+                                                <p class="text-sm text-yellow-700 mt-1">
+                                                    มีการแนบรูปภาพ {{ $ticket->image_count }} รูป แต่ไม่สามารถโหลดไฟล์ได้ 
+                                                    อาจเป็นเพราะไฟล์ถูกลบหรือย้ายตำแหน่ง
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Card ความคิดเห็นและบันทึก --}}
+                            <div class="bg-white rounded-xl shadow-lg border border-gray-200 mt-8">
+                                <div class="px-6 py-4 bg-gradient-to-r from-green-200 to-emerald-300 text-green-800 font-bold text-lg rounded-t-xl">
+                                    <h5 class="mb-0 flex items-center">
+                                        <i class="fas fa-comments mr-2"></i>
+                                        ความคิดเห็นและบันทึก ({{ $ticket->updates->count() }} รายการ)
+                                    </h5>
+                                </div>
+                                <div class="p-6">
+                                    @if ($ticket->updates->isEmpty())
+                                        <div class="text-center py-8">
+                                            <i class="fas fa-comment-slash text-4xl text-gray-300 mb-4"></i>
+                                            <p class="text-gray-500 text-lg mb-2">ยังไม่มีความคิดเห็น</p>
+                                            <p class="text-gray-400 text-sm">ความคิดเห็นและการอัปเดตจะแสดงที่นี่</p>
+                                        </div>
+                                    @else
+                                        <div class="space-y-4">
+                                            @foreach ($ticket->updates->sortByDesc('created_at') as $update)
+                                                <div class="border border-gray-200 rounded-lg p-4 {{ $loop->iteration % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}">
+                                                    <div class="flex items-start justify-between mb-3">
+                                                        <div class="flex items-center">
+                                                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                                                <i class="fas fa-user text-indigo-600 text-sm"></i>
+                                                            </div>
+                                                            <div>
+                                                                <p class="font-semibold text-gray-900">{{ $update->user->name ?? 'ระบบ' }}</p>
+                                                                <p class="text-sm text-gray-500">
+                                                                    {{ $update->created_at->format('d/m/Y H:i') }}
+                                                                    @if($update->type)
+                                                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                            {{ ucfirst(str_replace('_', ' ', $update->type)) }}
+                                                                        </span>
+                                                                    @endif
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        @if($update->status)
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                                สถานะ: {{ $update->status->name }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    
+                                                    @if($update->comment)
+                                                        <div class="bg-gray-50 rounded-lg p-3">
+                                                            <p class="text-gray-800 whitespace-pre-wrap">{{ $update->comment }}</p>
+                                                        </div>
+                                                    @endif
+                                                    
+                                                    @if($update->old_values || $update->new_values)
+                                                        <div class="mt-3">
+                                                            <p class="text-sm font-medium text-gray-700 mb-2">การเปลี่ยนแปลง:</p>
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                                                @if($update->old_values)
+                                                                    <div class="bg-red-50 border border-red-200 rounded p-2">
+                                                                        <p class="font-medium text-red-800 mb-1">ก่อนหน้า:</p>
+                                                                        <p class="text-red-700">{{ $update->old_values }}</p>
+                                                                    </div>
+                                                                @endif
+                                                                @if($update->new_values)
+                                                                    <div class="bg-green-50 border border-green-200 rounded p-2">
+                                                                        <p class="font-medium text-green-800 mb-1">ใหม่:</p>
+                                                                        <p class="text-green-700">{{ $update->new_values }}</p>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -303,6 +518,46 @@
                                                     <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                                                 @enderror
                                             </div>
+                                            @if (Auth::user()->isLeader() || Auth::user()->isManager() || Auth::user()->isCEO())
+                                            <div class="mb-4">
+                                                <label for="priority_id"
+                                                    class="block text-sm font-medium text-gray-700 mb-1">{{ __('ระดับความสำคัญ') }}</label>
+                                                <select
+                                                    class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm @error('priority_id') border-red-500 @enderror"
+                                                    id="priority_id" name="priority_id" required>
+                                                    @foreach ($priorities as $priority)
+                                                        <option value="{{ $priority->id }}"
+                                                            {{ $ticket->priority_id == $priority->id ? 'selected' : '' }}>
+                                                            @php
+                                                                $priorityName = $priority->name;
+                                                                $thaiPriority = '';
+                                                                switch ($priorityName) {
+                                                                    case 'Critical':
+                                                                        $thaiPriority = 'เร่งด่วน';
+                                                                        break;
+                                                                    case 'High':
+                                                                        $thaiPriority = 'สูง';
+                                                                        break;
+                                                                    case 'Medium':
+                                                                        $thaiPriority = 'ปานกลาง';
+                                                                        break;
+                                                                    case 'Low':
+                                                                        $thaiPriority = 'ต่ำ';
+                                                                        break;
+                                                                    default:
+                                                                        $thaiPriority = $priorityName;
+                                                                        break;
+                                                                }
+                                                            @endphp
+                                                            {{ $thaiPriority }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('priority_id')
+                                                    <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            @endif
                                             <div class="mb-6">
                                                 <label for="comment"
                                                     class="block text-sm font-medium text-gray-700 mb-1">{{ __('เพิ่มบันทึก/ความคิดเห็น') }}</label>
@@ -350,7 +605,148 @@
         </div>
     </div>
 
+    {{-- Comments and Updates Section --}}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6 text-gray-900">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-comments text-blue-500 mr-2"></i>
+                    ความคิดเห็นและบันทึกการทำงาน
+                </h2>
+                
+                @if($ticket->updates->count() > 0)
+                    <div class="space-y-4">
+                        @foreach($ticket->updates->sortBy('created_at') as $update)
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div class="flex items-start space-x-3">
+                                    {{-- Avatar --}}
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white font-semibold text-sm">
+                                                {{ substr($update->user->name, 0, 1) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Content --}}
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center space-x-2">
+                                                <h4 class="text-sm font-semibold text-gray-900">
+                                                    {{ $update->user->name }}
+                                                </h4>
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                    @if($update->type === 'comment') bg-blue-100 text-blue-800
+                                                    @elseif($update->type === 'status_change') bg-green-100 text-green-800
+                                                    @elseif($update->type === 'assignment') bg-purple-100 text-purple-800
+                                                    @else bg-gray-100 text-gray-800
+                                                    @endif">
+                                                    @if($update->type === 'comment')
+                                                        <i class="fas fa-comment mr-1"></i>ความคิดเห็น
+                                                    @elseif($update->type === 'status_change')
+                                                        <i class="fas fa-exchange-alt mr-1"></i>เปลี่ยนสถานะ
+                                                    @elseif($update->type === 'assignment')
+                                                        <i class="fas fa-user-plus mr-1"></i>มอบหมายงาน
+                                                    @else
+                                                        <i class="fas fa-edit mr-1"></i>{{ ucfirst(str_replace('_', ' ', $update->type)) }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <time class="text-sm text-gray-500">
+                                                {{ $update->created_at->format('d/m/Y H:i') }}
+                                            </time>
+                                        </div>
+                                        
+                                        {{-- Comment Content --}}
+                                        @if($update->comment)
+                                            <div class="text-sm text-gray-700 whitespace-pre-wrap">{{ $update->comment }}</div>
+                                        @endif
+                                        
+                                        {{-- Status Change Details --}}
+                                        @if($update->type === 'status_change' && $update->old_values && $update->new_values)
+                                            <div class="mt-2 p-2 bg-gray-50 rounded border-l-4 border-green-400">
+                                                <div class="text-xs text-gray-600 mb-1">การเปลี่ยนแปลงสถานะ:</div>
+                                                <div class="flex items-center space-x-2 text-sm">
+                                                    <span class="px-2 py-1 bg-gray-200 rounded">{{ $update->old_values }}</span>
+                                                    <i class="fas fa-arrow-right text-gray-400"></i>
+                                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded">{{ $update->new_values }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        
+                                        {{-- Assignment Details --}}
+                                        @if($update->type === 'assignment' && $update->old_values && $update->new_values)
+                                            <div class="mt-2 p-2 bg-gray-50 rounded border-l-4 border-purple-400">
+                                                <div class="text-xs text-gray-600 mb-1">การมอบหมายงาน:</div>
+                                                <div class="flex items-center space-x-2 text-sm">
+                                                    <span class="px-2 py-1 bg-gray-200 rounded">{{ $update->old_values ?: 'ยังไม่ได้มอบหมาย' }}</span>
+                                                    <i class="fas fa-arrow-right text-gray-400"></i>
+                                                    <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded">{{ $update->new_values }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-8">
+                        <div class="text-gray-400 mb-4">
+                            <i class="fas fa-comments text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">ยังไม่มีความคิดเห็น</h3>
+                        <p class="text-gray-500">เริ่มต้นการสนทนาโดยเพิ่มความคิดเห็นแรกของคุณ</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Image Modal --}}
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="relative max-w-4xl max-h-full bg-white rounded-lg overflow-hidden">
+            {{-- Modal Header --}}
+            <div class="flex items-center justify-between p-4 bg-gray-100 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    รูปภาพประกอบ - <span id="modalImageNumber">1</span>/<span id="modalTotalImages">1</span>
+                </h3>
+                <button onclick="closeImageModal()" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            {{-- Modal Body --}}
+            <div class="relative">
+                <img id="modalImage" src="" alt="รูปภาพประกอบ" class="max-w-full max-h-96 mx-auto object-contain">
+                
+                {{-- Navigation Arrows --}}
+                <button id="prevBtn" onclick="navigateImage(-1)" class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 focus:outline-none">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button id="nextBtn" onclick="navigateImage(1)" class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 focus:outline-none">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            {{-- Modal Footer --}}
+            <div class="flex items-center justify-between p-4 bg-gray-100 border-t">
+                <button onclick="downloadImage()" class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none">
+                    <i class="fas fa-download mr-2"></i>
+                    ดาวน์โหลด
+                </button>
+                <button onclick="closeImageModal()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none">
+                    ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentImageIndex = 0;
+        let totalImages = 0;
+        let imageUrls = [];
+
         function handleFormSubmit(event) {
             // ฟังก์ชันนี้จะทำงานเมื่อฟอร์มอัพเดทถูกส่ง
             // หลังจากที่ฟอร์มถูกส่งสำเร็จ จะ trigger event เพื่อ refresh Kanban board
@@ -359,5 +755,83 @@
                 window.dispatchEvent(new CustomEvent('ticketUpdated'));
             }, 1000); // รอ 1 วินาทีเพื่อให้การอัพเดทเสร็จสิ้น
         }
+
+        function openImageModal(imageUrl, imageNumber, total) {
+            currentImageIndex = imageNumber - 1;
+            totalImages = total;
+            
+            // Get all image URLs from the page
+            imageUrls = [];
+            document.querySelectorAll('img[alt*="รูปภาพประกอบ"]').forEach(img => {
+                imageUrls.push(img.src);
+            });
+            
+            // Update modal
+            document.getElementById('modalImage').src = imageUrl;
+            document.getElementById('modalImageNumber').textContent = imageNumber;
+            document.getElementById('modalTotalImages').textContent = total;
+            
+            // Show/hide navigation buttons
+            document.getElementById('prevBtn').style.display = total > 1 ? 'block' : 'none';
+            document.getElementById('nextBtn').style.display = total > 1 ? 'block' : 'none';
+            
+            // Show modal
+            document.getElementById('imageModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function navigateImage(direction) {
+            currentImageIndex += direction;
+            
+            // Handle wraparound
+            if (currentImageIndex < 0) {
+                currentImageIndex = totalImages - 1;
+            } else if (currentImageIndex >= totalImages) {
+                currentImageIndex = 0;
+            }
+            
+            // Update modal
+            document.getElementById('modalImage').src = imageUrls[currentImageIndex];
+            document.getElementById('modalImageNumber').textContent = currentImageIndex + 1;
+        }
+
+        function downloadImage() {
+            const imageUrl = document.getElementById('modalImage').src;
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = `ticket-image-${currentImageIndex + 1}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImageModal();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (!document.getElementById('imageModal').classList.contains('hidden')) {
+                switch(e.key) {
+                    case 'Escape':
+                        closeImageModal();
+                        break;
+                    case 'ArrowLeft':
+                        navigateImage(-1);
+                        break;
+                    case 'ArrowRight':
+                        navigateImage(1);
+                        break;
+                }
+            }
+        });
     </script>
 </x-app-layout>

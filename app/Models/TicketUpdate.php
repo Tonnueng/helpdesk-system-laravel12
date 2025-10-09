@@ -15,6 +15,9 @@ class TicketUpdate extends Model
         'user_id',
         'comment',
         'status_id',
+        'type',
+        'old_values',
+        'new_values',
     ];
 
     public function ticket(): BelongsTo

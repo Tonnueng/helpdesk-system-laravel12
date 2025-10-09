@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Notifications\TicketCreatedNotification;
 use App\Notifications\TicketUpdatedNotification;
 use App\Notifications\TicketAssignedNotification;
+use App\Services\WorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,12 @@ use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
+    protected $workflowService;
+
+    public function __construct(WorkflowService $workflowService)
+    {
+        $this->workflowService = $workflowService;
+    }
     public function index(Request $request)
     {
         $query = Ticket::with(['user', 'category', 'priority', 'status']);
@@ -245,19 +252,41 @@ class TicketController extends Controller
 
     public function store(Request $request)
     {
+        // Debug: Log incoming request data
+        \Log::info('Ticket creation request data:', $request->all());
 
         try {
             // 1. ตรวจสอบข้อมูลจากฟอร์ม
-            $validatedData = $request->validate([
+            \Log::info('Starting validation...');
+            
+            // Filter out empty files before validation
+            $filteredFiles = [];
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    // Check if file exists and has content
+                    if ($file && $file->isValid() && $file->getSize() > 0) {
+                        $filteredFiles[] = $file;
+                        \Log::info('Valid file added: ' . $file->getClientOriginalName() . ' (' . $file->getSize() . ' bytes)');
+                    } else {
+                        \Log::warning('Empty or invalid file skipped: ' . ($file ? $file->getClientOriginalName() : 'null'));
+                    }
+                }
+                \Log::info('Filtered attachments count: ' . count($filteredFiles));
+            }
+            
+            // Custom validation for attachments
+            $validator = \Validator::make($request->all(), [
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'main_category' => 'required|string',
                 'sub_category_id' => 'required|exists:categories,id',
                 'priority_id' => 'required|exists:priorities,id',
                 'reported_at' => 'nullable|date',
+                'links' => 'nullable|string|max:1000',
                 'phone' => 'nullable|string|max:30',
                 'position' => 'nullable|in:หัวหน้า,พนักงานปกติ',
                 'department' => 'nullable|in:programer,product,marketing,admin,hr,manager,editor,finance',
+                // Skip attachments validation - we'll handle it manually
             ], [
                 'title.required' => 'กรุณากรอกหัวข้อปัญหา',
                 'description.required' => 'กรุณากรอกรายละเอียดปัญหา',
@@ -267,10 +296,67 @@ class TicketController extends Controller
                 'priority_id.required' => 'กรุณาเลือกระดับความสำคัญ',
                 'priority_id.exists' => 'ระดับความสำคัญไม่ถูกต้อง',
                 'reported_at.date' => 'รูปแบบวันที่และเวลาไม่ถูกต้อง',
+                'links.max' => 'ลิงค์ยาวเกินไป',
                 'phone.max' => 'เบอร์โทรศัพท์ยาวเกินไป',
                 'position.in' => 'ตำแหน่งไม่ถูกต้อง',
                 'department.in' => 'แผนกไม่ถูกต้อง',
+                // Skip attachments error messages - we'll handle it manually
             ]);
+
+            // Check if validation fails
+            if ($validator->fails()) {
+                \Log::error('Validation failed:', $validator->errors()->toArray());
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => $validator->errors()
+                    ], 422);
+                }
+                return redirect()->back()->withErrors($validator->errors())->withInput();
+            }
+
+            $validatedData = $validator->validated();
+            \Log::info('Validation passed. Validated data:', $validatedData);
+
+            // Manual validation for filtered files
+            if (count($filteredFiles) > 5) {
+                \Log::error('Too many files: ' . count($filteredFiles));
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => ['attachments' => ['สามารถอัพโหลดได้สูงสุด 5 ไฟล์']]
+                    ], 422);
+                }
+                return redirect()->back()->withErrors(['attachments' => 'สามารถอัพโหลดได้สูงสุด 5 ไฟล์'])->withInput();
+            }
+
+            // Check total size of all files
+            $totalSize = 0;
+            foreach ($filteredFiles as $file) {
+                $totalSize += $file->getSize();
+                if ($file->getSize() > 2048 * 1024) { // 2MB per file
+                    \Log::error('File too large: ' . $file->getClientOriginalName() . ' (' . $file->getSize() . ' bytes)');
+                    if ($request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'errors' => ['attachments' => ['ขนาดไฟล์ต้องไม่เกิน 2MB']]
+                        ], 422);
+                    }
+                    return redirect()->back()->withErrors(['attachments' => 'ขนาดไฟล์ต้องไม่เกิน 2MB'])->withInput();
+                }
+            }
+
+            // Check total size limit (30MB)
+            if ($totalSize > 30 * 1024 * 1024) {
+                \Log::error('Total size too large: ' . $totalSize . ' bytes');
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => ['attachments' => ['ขนาดไฟล์รวมต้องไม่เกิน 30MB']]
+                    ], 422);
+                }
+                return redirect()->back()->withErrors(['attachments' => 'ขนาดไฟล์รวมต้องไม่เกิน 30MB'])->withInput();
+            }
 
             // 2. อัปเดตข้อมูลส่วนตัวของผู้ใช้ (phone, position, department)
             $user = Auth::user();
@@ -293,16 +379,74 @@ class TicketController extends Controller
             $ticket->description = $validatedData['description'];
             $ticket->reported_at = $validatedData['reported_at'];
             
+            // เพิ่มข้อมูล links
+            if (!empty($validatedData['links'])) {
+                $ticket->description .= "\n\n--- ลิงค์ที่เกี่ยวข้อง ---\n" . $validatedData['links'];
+            }
+            
             // มอบหมายให้หัวหน้าตามหมวดหมู่หลัก
             if ($assignedLeader) {
                 $ticket->assigned_to_user_id = $assignedLeader->id;
             }
             
             $ticket->save();
+            \Log::info('Ticket saved successfully with ID: ' . $ticket->id);
+
+            // 5. จัดการไฟล์แนบ (รูปภาพ) - ใช้ไฟล์ที่กรองแล้ว
+            $imagePaths = [];
+            if (!empty($filteredFiles)) {
+                \Log::info('Processing filtered attachments. Count: ' . count($filteredFiles));
+                foreach ($filteredFiles as $index => $file) {
+                    \Log::info("Processing file {$index}: " . $file->getClientOriginalName() . " (Size: " . $file->getSize() . " bytes)");
+                    
+                    if ($file->isValid()) {
+                        try {
+                            $filename = time() . '_' . $file->getClientOriginalName();
+                            $path = $file->storeAs('ticket-attachments', $filename, 'public');
+                            
+                            \Log::info("File stored successfully: {$path}");
+                            
+                            // เพิ่มใน images array
+                            $imagePaths[] = $path;
+                            
+                            $ticket->attachments()->create([
+                                'filename' => $filename,
+                                'original_name' => $file->getClientOriginalName(),
+                                'filepath' => $path,
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $file->getMimeType(),
+                            ]);
+                            
+                        } catch (\Exception $e) {
+                            // Log error but continue processing
+                            \Log::error('File storage failed: ' . $e->getMessage());
+                        }
+                    } else {
+                        \Log::warning("File {$index} is invalid: " . $file->getClientOriginalName());
+                    }
+                }
+            }
+
+            // อัพเดทข้อมูลรูปภาพในตั๋ว
+            if (!empty($imagePaths)) {
+                $ticket->images = $imagePaths;
+                $ticket->image_count = count($imagePaths);
+                $ticket->primary_image = $imagePaths[0]; // ตั้งรูปแรกเป็น primary
+                $ticket->save();
+            }
 
 
 
-            // 5. สร้าง Ticket Update (แจ้งว่ามีการสร้าง Ticket ใหม่)
+            // 6. เริ่มต้น Workflow (ถ้ามี)
+            try {
+                $this->workflowService->startWorkflow($ticket);
+                \Log::info('Workflow started for ticket: ' . $ticket->id);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to start workflow for ticket ' . $ticket->id . ': ' . $e->getMessage());
+                // ไม่หยุดการทำงานถ้า workflow ล้มเหลว
+            }
+
+            // 7. สร้าง Ticket Update (แจ้งว่ามีการสร้าง Ticket ใหม่)
             $comment = 'Ticket created.';
             if ($assignedLeader) {
                 $comment .= ' Assigned to ' . $assignedLeader->name . ' (Team Leader for ' . $mainCategory . ').';
@@ -318,13 +462,37 @@ class TicketController extends Controller
             $this->sendTicketCreatedNotifications($ticket);
 
             // 6. Redirect พร้อมข้อความสำเร็จ
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'แจ้งปัญหาสำเร็จแล้ว!',
+                    'redirect' => route('tickets.index')
+                ]);
+            }
             return redirect()->route('tickets.index')->with('success', 'แจ้งปัญหาสำเร็จแล้ว!');
 
         } catch (ValidationException $e) {
             // หากเกิดข้อผิดพลาดในการตรวจสอบข้อมูล
+            \Log::error('Validation failed:', $e->errors());
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            }
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             // ข้อผิดพลาดอื่นๆ
+            \Log::error('Ticket creation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->all()
+            ]);
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'เกิดข้อผิดพลาดในการแจ้งปัญหา: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->back()->with('error', 'เกิดข้อผิดพลาดในการแจ้งปัญหา: ' . $e->getMessage())->withInput();
         }
     }
@@ -356,6 +524,9 @@ class TicketController extends Controller
 
         // โหลดสถานะทั้งหมดสำหรับ Dropdown การเปลี่ยนสถานะ (สำหรับผู้ดูแล)
         $statuses = Status::all();
+        
+        // โหลดระดับความสำคัญทั้งหมดสำหรับ Dropdown การเปลี่ยนระดับความสำคัญ (สำหรับ Leader, Manager, CEO)
+        $priorities = Priority::all();
 
         // ดึงผู้ใช้งานที่สามารถรับผิดชอบ Ticket ได้
         $user = Auth::user();
@@ -370,7 +541,7 @@ class TicketController extends Controller
             $agents = collect();
         }
 
-        return view('tickets.show', compact('ticket', 'statuses', 'agents'));
+        return view('tickets.show', compact('ticket', 'statuses', 'priorities', 'agents'));
     }
 
 
@@ -389,7 +560,7 @@ class TicketController extends Controller
 
         try {
             // 1. ตรวจสอบข้อมูลจากฟอร์ม
-            $validatedData = $request->validate([
+            $validationRules = [
                 'status_id' => 'required|exists:statuses,id',
                 'assigned_to_user_id' => [
                     'nullable',
@@ -399,30 +570,54 @@ class TicketController extends Controller
                     }),
                 ],
                 'comment' => 'nullable|string|max:1000',
-            ], [
+            ];
+            
+            $validationMessages = [
                 'status_id.required' => 'กรุณาเลือกสถานะ',
                 'status_id.exists' => 'สถานะไม่ถูกต้อง',
                 'assigned_to_user_id.exists' => 'ผู้รับผิดชอบไม่ถูกต้อง',
                 'comment.max' => 'บันทึก/ความคิดเห็นมีความยาวเกินไป',
-            ]);
+            ];
+            
+            // เพิ่มการตรวจสอบ priority_id สำหรับ Leader, Manager, CEO
+            if (Auth::user()->isLeader() || Auth::user()->isManager() || Auth::user()->isCEO()) {
+                $validationRules['priority_id'] = 'required|exists:priorities,id';
+                $validationMessages['priority_id.required'] = 'กรุณาเลือกระดับความสำคัญ';
+                $validationMessages['priority_id.exists'] = 'ระดับความสำคัญไม่ถูกต้อง';
+            }
+            
+            $validatedData = $request->validate($validationRules, $validationMessages);
 
-            // บันทึกสถานะเก่าและผู้รับผิดชอบเก่า
+            // บันทึกสถานะเก่า ผู้รับผิดชอบเก่า และระดับความสำคัญเก่า
             $oldStatusId = $ticket->status_id;
             $oldAssignedToId = $ticket->assigned_to_user_id;
+            $oldPriorityId = $ticket->priority_id;
 
             // 2. อัปเดตข้อมูล Ticket
             $ticket->status_id = $validatedData['status_id'];
             $ticket->assigned_to_user_id = $validatedData['assigned_to_user_id'];
+            
+            // อัพเดต priority_id สำหรับ Leader, Manager, CEO
+            if (Auth::user()->isLeader() || Auth::user()->isManager() || Auth::user()->isCEO()) {
+                $ticket->priority_id = $validatedData['priority_id'];
+            }
+            
             $ticket->save();
 
             // 3. เพิ่ม Ticket Update
             $comment = $validatedData['comment'];
             $statusChanged = ($oldStatusId != $validatedData['status_id']);
             $assignedToChanged = ($oldAssignedToId != $validatedData['assigned_to_user_id']);
+            $priorityChanged = false;
+            
+            // ตรวจสอบการเปลี่ยนแปลงระดับความสำคัญ
+            if (Auth::user()->isLeader() || Auth::user()->isManager() || Auth::user()->isCEO()) {
+                $priorityChanged = ($oldPriorityId != $validatedData['priority_id']);
+            }
 
-            // ถ้ามีการเปลี่ยนสถานะหรือผู้รับผิดชอบ หรือมี comment
-            if ($statusChanged || $assignedToChanged || $comment) {
-                // สร้าง comment อัตโนมัติสำหรับการเปลี่ยนสถานะ/มอบหมายงาน
+            // ถ้ามีการเปลี่ยนสถานะ ผู้รับผิดชอบ ระดับความสำคัญ หรือมี comment
+            if ($statusChanged || $assignedToChanged || $priorityChanged || $comment) {
+                // สร้าง comment อัตโนมัติสำหรับการเปลี่ยนสถานะ/มอบหมายงาน/ระดับความสำคัญ
                 $autoComment = '';
                 if ($statusChanged) {
                     $newStatus = Status::find($validatedData['status_id'])->name;
@@ -432,6 +627,11 @@ class TicketController extends Controller
                     $newAssignedTo = $ticket->assignedTo ? $ticket->assignedTo->name : 'ไม่ได้มอบหมาย';
                     $autoComment .= "มอบหมายให้ '{$newAssignedTo}'. ";
                 }
+                if ($priorityChanged) {
+                    $oldPriority = Priority::find($oldPriorityId)->name;
+                    $newPriority = Priority::find($validatedData['priority_id'])->name;
+                    $autoComment .= "เปลี่ยนระดับความสำคัญจาก '{$oldPriority}' เป็น '{$newPriority}'. ";
+                }
 
                 $ticket->updates()->create([
                     'user_id' => Auth::id(), // ผู้ที่ทำการอัปเดต (ผู้ดูแล)
@@ -440,7 +640,28 @@ class TicketController extends Controller
                 ]);
             }
 
-            // 4. ส่ง In-app Notifications
+            // 4. ตรวจสอบและเริ่มต้น Workflow ใหม่ (ถ้ามีการเปลี่ยนแปลงที่สำคัญ)
+            try {
+                if ($statusChanged || $assignedToChanged) {
+                    // หา workflow ที่เหมาะสมกับสถานะใหม่
+                    $applicableWorkflow = $this->workflowService->findApplicableWorkflow($ticket);
+                    if ($applicableWorkflow) {
+                        // ตรวจสอบว่า ticket นี้มี workflow ที่กำลังทำงานอยู่หรือไม่
+                        $existingWorkflow = \App\Models\TicketWorkflow::where('ticket_id', $ticket->id)
+                            ->where('status', 'running')
+                            ->first();
+                        
+                        if (!$existingWorkflow) {
+                            $this->workflowService->startWorkflow($ticket, $applicableWorkflow);
+                            \Log::info('New workflow started for updated ticket: ' . $ticket->id);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to start workflow for updated ticket ' . $ticket->id . ': ' . $e->getMessage());
+            }
+
+            // 5. ส่ง In-app Notifications
             $this->sendTicketUpdatedNotifications($ticket, $ticket->updates()->latest()->first());
 
             return redirect()->route('tickets.index')->with('success', 'อัปเดตปัญหาสำเร็จแล้ว!');

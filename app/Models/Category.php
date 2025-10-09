@@ -28,6 +28,17 @@ class Category extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order');
+    }
+
     // หมวดหมู่หลัก (parent_category เป็น null)
     public function scopeMainCategories($query)
     {

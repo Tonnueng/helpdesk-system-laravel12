@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PrioritySeeder::class,
             StatusSeeder::class,
             ComprehensiveUserSeeder::class,
+            WorkflowSeeder::class,
             LargeTicketSeeder::class,
         ]);
     }

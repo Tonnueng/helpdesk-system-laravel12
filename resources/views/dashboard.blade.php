@@ -43,6 +43,60 @@
                 </div>
             @endif
 
+            {{-- ส่วนประสิทธิภาพ --}}
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 mb-8">
+                <div class="p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-chart-line text-purple-600 text-sm"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800">ประสิทธิภาพ</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {{-- เวลาการแก้ไขเฉลี่ย --}}
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-700 mb-2">เวลาการแก้ไขเฉลี่ย</div>
+                            <div class="text-2xl font-bold text-blue-600">
+                                @php
+                                    $avgResolutionTime = \App\Models\Ticket::where('status_id', 3) // Closed status
+                                        ->selectRaw('FLOOR(AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at))) as avg_hours')
+                                        ->value('avg_hours');
+                                    $avgHours = $avgResolutionTime ?: 0;
+                                @endphp
+                                {{ $avgHours }} <span class="text-sm font-normal">ชม.</span>
+                            </div>
+                        </div>
+                        
+                        {{-- ปัญหาที่แก้ไขแล้ว --}}
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-700 mb-2">ปัญหาที่แก้ไขแล้ว</div>
+                            <div class="text-2xl font-bold text-green-600">
+                                @php
+                                    $resolvedCount = \App\Models\Ticket::where('status_id', 3)->count(); // Closed status
+                                @endphp
+                                {{ $resolvedCount }}
+                            </div>
+                        </div>
+                        
+                        {{-- เวลาการแก้ไขเฉลี่ยของฉัน --}}
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-700 mb-2">เวลาการแก้ไขเฉลี่ยของฉัน</div>
+                            <div class="text-2xl font-bold text-purple-600">
+                                @php
+                                    $myAvgResolutionTime = \App\Models\Ticket::where('status_id', 3) // Closed status
+                                        ->where('assigned_to_user_id', Auth::id())
+                                        ->selectRaw('FLOOR(AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at))) as avg_hours')
+                                        ->value('avg_hours');
+                                    $myAvgHours = $myAvgResolutionTime ?: 0;
+                                @endphp
+                                {{ $myAvgHours }} <span class="text-sm font-normal">ชม.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- สถิติหลัก - มินิมอล --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {{-- ปัญหาทั้งหมด --}}

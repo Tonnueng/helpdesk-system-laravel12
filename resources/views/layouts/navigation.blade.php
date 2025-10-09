@@ -33,6 +33,13 @@
                     <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
                         {{ __('การแจ้งเตือน') }}
                     </x-nav-link>
+
+                    <!-- จัดการ Workflow - สำหรับ Manager และ CEO เท่านั้น -->
+                    @if(Auth::user()->canViewDashboard())
+                        <x-nav-link :href="route('workflows.index')" :active="request()->routeIs('workflows.*')">
+                            {{ __('จัดการ Workflow') }}
+                        </x-nav-link>
+                    @endif
                 </div>
 
                 <!-- Notification Bell -->

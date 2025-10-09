@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\WorkflowController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
@@ -203,9 +204,31 @@ Route::middleware('auth')->group(function () {
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
     Route::get('/tickets/{ticket}/status/{status}', [TicketController::class, 'updateStatusGet'])->name('tickets.updateStatusGet');
 
+    // Workflow Management Routes
+    Route::resource('workflows', WorkflowController::class);
+    Route::post('/workflows/{workflow}/clone', [WorkflowController::class, 'clone'])->name('workflows.clone');
+    Route::patch('/workflows/{workflow}/toggle-status', [WorkflowController::class, 'toggleStatus'])->name('workflows.toggleStatus');
+    
+    // Workflow Steps management
+    Route::get('/workflows/{workflow}/steps/create', [WorkflowController::class, 'createStep'])->name('workflow-steps.create');
+    Route::post('/workflows/{workflow}/steps', [WorkflowController::class, 'storeStep'])->name('workflow-steps.store');
+    Route::get('/workflows/{workflow}/steps/{step}/edit', [WorkflowController::class, 'editStep'])->name('workflow-steps.edit');
+    Route::put('/workflows/{workflow}/steps/{step}', [WorkflowController::class, 'updateStep'])->name('workflow-steps.update');
+    Route::delete('/workflows/{workflow}/steps/{step}', [WorkflowController::class, 'destroyStep'])->name('workflow-steps.destroy');
+    
+    Route::post('/tickets/{ticket}/start-workflow', [WorkflowController::class, 'startForTicket'])->name('tickets.startWorkflow');
+    Route::get('/tickets/{ticket}/available-workflows', [WorkflowController::class, 'getAvailableWorkflows'])->name('tickets.availableWorkflows');
+    Route::get('/tickets/{ticket}/workflow', [WorkflowController::class, 'getTicketWorkflow'])->name('tickets.workflow');
+    Route::patch('/ticket-workflows/{ticketWorkflow}/pause', [WorkflowController::class, 'pause'])->name('ticket-workflows.pause');
+    Route::patch('/ticket-workflows/{ticketWorkflow}/resume', [WorkflowController::class, 'resume'])->name('ticket-workflows.resume');
+    Route::patch('/ticket-workflows/{ticketWorkflow}/cancel', [WorkflowController::class, 'cancel'])->name('ticket-workflows.cancel');
+
 });
 
 // API Routes for categories (outside auth middleware)
 Route::get('/api/categories/subcategories/{mainCategory}', [\App\Http\Controllers\Api\CategoryController::class, 'getSubCategories']);
+
+// Workflow processing route (for cron job)
+Route::get('/workflows/process-due', [WorkflowController::class, 'processDueWorkflows'])->name('workflows.processDue');
 
 require __DIR__.'/auth.php';
